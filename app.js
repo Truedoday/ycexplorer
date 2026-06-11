@@ -7,10 +7,11 @@ const pageSize = 48; // Divisible by 2, 3, and 4 for responsive grids
 // Chart Instances
 let industryChartInstance = null;
 let cohortChartInstance = null;
+let statusChartInstance = null;
 
 // DOM Elements
 const loadingOverlay = document.getElementById('loadingOverlay');
-const companyGrid = document.getElementById('companyGrid');
+const companyTableBody = document.getElementById('companyTableBody');
 const resultsCount = document.getElementById('resultsCount');
 const loadMoreBtn = document.getElementById('loadMoreBtn');
 const sortSelect = document.getElementById('sortSelect');
@@ -111,10 +112,6 @@ async function init() {
     // Default sorting (A-Z)
     sortCompanies(allCompanies, 'name_asc');
     
-    // Initialize Metrics
-    updateKPIs(allCompanies);
-    updateStatusBar(allCompanies);
-    
     // Initialize Filters
     populateFilterSelects(allCompanies);
     
@@ -166,6 +163,9 @@ function setupEventListeners() {
     sortCompanies(filteredCompanies, sortSelect.value);
     currentPage = 1;
     renderCompanies(false);
+    
+    // Clear active header sort styling if dropdown is used
+    document.querySelectorAll('.dense-table th').forEach(h => h.classList.remove('active-sort'));
   });
   
   resetFiltersBtn.addEventListener('click', resetFilters);
@@ -185,83 +185,90 @@ function setupEventListeners() {
       companyDialog.close();
     }
   });
+
+  // Table Column Header Click Sorting
+  const tableHeaders = document.querySelectorAll('.dense-table th');
+  let currentSortCol = 'name';
+  let sortAscending = true;
+  
+  tableHeaders.forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.getAttribute('data-sort');
+      if (!col) return;
+      
+      if (currentSortCol === col) {
+        sortAscending = !sortAscending;
+      } else {
+        currentSortCol = col;
+        sortAscending = true;
+      }
+      
+      // Update visual indicators
+      tableHeaders.forEach(h => h.classList.remove('active-sort'));
+      th.classList.add('active-sort');
+      
+      // Sort
+      sortTableByColumn(col, sortAscending);
+      
+      // Clear dropdown selector sync to avoid confusing UI states
+      sortSelect.value = '';
+      
+      currentPage = 1;
+      renderCompanies(false);
+    });
+  });
 }
 
-// KPI Dashboard Values
-function updateKPIs(data) {
-  // Total Startups
-  document.querySelector('#metricTotal .metric-value').textContent = data.length.toLocaleString();
+// Sort dataset by column clicked (Airtable-style)
+function sortTableByColumn(col, ascending) {
+  const mult = ascending ? 1 : -1;
   
-  // Public Companies
-  const publicCount = data.filter(c => c.status === 'Public').length;
-  document.querySelector('#metricPublic .metric-value').textContent = publicCount.toLocaleString();
-  
-  // Top Companies
-  const topCount = data.filter(c => c.top_company === true).length;
-  document.querySelector('#metricTop .metric-value').textContent = topCount.toLocaleString();
-  
-  // Exited Startups (Acquired + Public)
-  const exitsTotalList = data.filter(c => c.status === 'Acquired' || c.status === 'Public');
-  const exitsDisclosedList = exitsTotalList.filter(c => typeof c.exit_value === 'number' && c.exit_value > 0);
-  const exitSum = exitsDisclosedList.reduce((sum, c) => sum + c.exit_value, 0);
-  document.querySelector('#metricExits .metric-value').textContent = exitsTotalList.length.toLocaleString();
-  document.querySelector('#metricExits .metric-subtext').textContent = `${exitsTotalList.length} exits (${exitsDisclosedList.length} disclosed: ${formatCurrency(exitSum)} total)`;
-  
-  // Total YC Capital Invested
-  const totalCapital = data.reduce((sum, c) => sum + (c.standard_yc_deal || 20000), 0);
-  document.querySelector('#metricCapital .metric-value').textContent = formatCurrency(totalCapital);
-}
-
-// Update Operating Status Progress Bar
-function updateStatusBar(data) {
-  const statusCounts = { Active: 0, Acquired: 0, Public: 0, Inactive: 0 };
-  data.forEach(c => {
-    if (c.status in statusCounts) {
-      statusCounts[c.status]++;
-    }
-  });
-
-  const total = data.length || 1;
-  const statusBar = document.getElementById('statusBar');
-  const statusLegend = document.getElementById('statusLegend');
-  if (!statusBar || !statusLegend) return;
-
-  statusBar.innerHTML = '';
-  statusLegend.innerHTML = '';
-
-  const colors = {
-    Active: 'active',
-    Acquired: 'acquired',
-    Public: 'public',
-    Inactive: 'inactive'
-  };
-
-  const labels = {
-    Active: 'Active',
-    Acquired: 'Acquired',
-    Public: 'Public',
-    Inactive: 'Inactive'
-  };
-
-  Object.entries(statusCounts).forEach(([status, count]) => {
-    const pct = ((count / total) * 100).toFixed(1);
-    if (count > 0) {
-      const segment = document.createElement('div');
-      segment.className = `status-segment ${colors[status]}`;
-      segment.style.width = `${pct}%`;
-      segment.title = `${labels[status]}: ${count.toLocaleString()} (${pct}%)`;
-      statusBar.appendChild(segment);
-    }
-
-    // Add to legend
-    const legendItem = document.createElement('div');
-    legendItem.className = 'legend-item';
-    legendItem.innerHTML = `
-      <span class="legend-dot ${colors[status]}"></span>
-      <span class="legend-text"><strong>${labels[status]}</strong>: ${count.toLocaleString()} (${pct}%)</span>
-    `;
-    statusLegend.appendChild(legendItem);
-  });
+  if (col === 'name') {
+    filteredCompanies.sort((a, b) => mult * (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+  } else if (col === 'batch') {
+    filteredCompanies.sort((a, b) => {
+      const pa = parseBatch(a.batch);
+      const pb = parseBatch(b.batch);
+      if (pa.year !== pb.year) return mult * (pa.year - pb.year);
+      return mult * (pa.seasonVal - pb.seasonVal);
+    });
+  } else if (col === 'status') {
+    filteredCompanies.sort((a, b) => mult * (a.status || '').localeCompare(b.status || '', undefined, { sensitivity: 'base' }));
+  } else if (col === 'industry') {
+    filteredCompanies.sort((a, b) => mult * (a.industry || '').localeCompare(b.industry || '', undefined, { sensitivity: 'base' }));
+  } else if (col === 'yc_deal') {
+    filteredCompanies.sort((a, b) => mult * ((a.standard_yc_deal || 0) - (b.standard_yc_deal || 0)));
+  } else if (col === 'funding') {
+    filteredCompanies.sort((a, b) => {
+      const fa = typeof a.other_funding_raised === 'number' ? a.other_funding_raised : 0;
+      const fb = typeof b.other_funding_raised === 'number' ? b.other_funding_raised : 0;
+      return mult * (fa - fb);
+    });
+  } else if (col === 'exit') {
+    filteredCompanies.sort((a, b) => {
+      const ea = typeof a.exit_value === 'number' ? a.exit_value : 0;
+      const eb = typeof b.exit_value === 'number' ? b.exit_value : 0;
+      return mult * (ea - eb);
+    });
+  } else if (col === 'founded') {
+    filteredCompanies.sort((a, b) => {
+      const fa = a.founded_year || 9999;
+      const fb = b.founded_year || 9999;
+      return mult * (fa - fb);
+    });
+  } else if (col === 'team') {
+    filteredCompanies.sort((a, b) => {
+      const ta = a.team_size === undefined || a.team_size === null ? (ascending ? 999999 : -1) : a.team_size;
+      const tb = b.team_size === undefined || b.team_size === null ? (ascending ? 999999 : -1) : b.team_size;
+      return mult * (ta - tb);
+    });
+  } else if (col === 'country') {
+    filteredCompanies.sort((a, b) => {
+      const ca = getCountryFromLocation(a.all_locations) || '';
+      const cb = getCountryFromLocation(b.all_locations) || '';
+      return mult * ca.localeCompare(cb, undefined, { sensitivity: 'base' });
+    });
+  }
 }
 
 // Custom parser to sort YC batches chronologically (newest first)
@@ -431,6 +438,11 @@ function resetFilters() {
   hiringCheckbox.checked = false;
   sortSelect.value = 'name_asc';
   
+  // Clear table header sort styling and set default
+  document.querySelectorAll('.dense-table th').forEach(th => th.classList.remove('active-sort'));
+  const nameTh = document.querySelector('.dense-table th[data-sort="name"]');
+  if (nameTh) nameTh.classList.add('active-sort');
+
   applyFiltersAndSearch();
 }
 
@@ -475,10 +487,10 @@ function sortCompanies(arr, type) {
   }
 }
 
-// Render Grid
+// Render Grid (Table rows)
 function renderCompanies(append = false) {
   if (!append) {
-    companyGrid.innerHTML = '';
+    companyTableBody.innerHTML = '';
   }
   
   resultsCount.textContent = `Found ${filteredCompanies.length.toLocaleString()} startups`;
@@ -488,22 +500,23 @@ function renderCompanies(append = false) {
   const pageItems = filteredCompanies.slice(start, end);
   
   if (filteredCompanies.length === 0) {
-    companyGrid.innerHTML = `
-      <div class="glass-panel" style="grid-column: 1 / -1; text-align: center; padding: 48px; color: var(--text-muted);">
-        <p style="font-size: 1.2rem; margin-bottom: 8px;">No YC startups match your filters.</p>
-        <button class="btn btn-secondary" onclick="document.getElementById('resetFiltersBtn').click()">Clear Filters</button>
-      </div>
+    companyTableBody.innerHTML = `
+      <tr>
+        <td colspan="10" style="text-align: center; padding: 48px; color: var(--text-muted);">
+          <p style="font-size: 1.1rem; margin-bottom: 8px;">No YC startups match your filters.</p>
+          <button class="btn btn-secondary" onclick="document.getElementById('resetFiltersBtn').click()">Clear Filters</button>
+        </td>
+      </tr>
     `;
     loadMoreBtn.style.display = 'none';
     return;
   }
   
   pageItems.forEach(c => {
-    const card = document.createElement('article');
-    card.className = 'company-card glass-panel';
-    card.setAttribute('tabindex', '0');
-    card.setAttribute('role', 'button');
-    card.setAttribute('aria-label', `View details for ${c.name}`);
+    const row = document.createElement('tr');
+    row.setAttribute('tabindex', '0');
+    row.setAttribute('role', 'button');
+    row.setAttribute('aria-label', `View details for ${c.name}`);
     
     // Status Badge classes
     let statusClass = 'status-active';
@@ -511,64 +524,52 @@ function renderCompanies(append = false) {
     else if (c.status === 'Public') statusClass = 'status-public';
     else if (c.status === 'Inactive') statusClass = 'status-inactive';
     
-    // Header badges
-    const badgesHtml = `
-      <span class="badge batch-badge">${c.batch || 'Stealth'}</span>
-      <span class="badge status-badge ${statusClass}">${c.status || 'Active'}</span>
-      ${c.ticker && c.ticker !== 'N/A' ? `<span class="badge ticker-badge" title="Stock symbol">${c.ticker}</span>` : ''}
-      ${c.top_company ? '<span class="badge top-badge" title="Top YC Company">🏆 Top</span>' : ''}
-      ${c.isHiring ? '<span class="badge hiring-badge" title="Actively Hiring">💼 Hiring</span>' : ''}
-    `;
+    // Extra indicators for name column
+    const topBadge = c.top_company ? '<span class="badge top-badge" title="Top YC Company">🏆</span>' : '';
+    const hiringBadge = c.isHiring ? '<span class="badge hiring-badge" title="Actively Hiring">💼</span>' : '';
+    const tickerBadge = c.ticker && c.ticker !== 'N/A' ? `<span class="badge ticker-badge" title="Stock symbol">${c.ticker}</span>` : '';
     
-    // Financial metrics preview on card
-    const extraFunding = c.other_funding_raised && c.other_funding_raised !== 'Undisclosed';
-    const exitDisclosed = c.exit_value && c.exit_value !== 'Undisclosed' && c.exit_value !== 'N/A';
-    
-    const financialHtml = `
-      <div class="card-financials">
-        <div class="card-financials-row">
-          <span class="card-financials-label">YC Seed</span>
-          <span class="card-financials-val highlight">${formatCurrency(c.standard_yc_deal)}</span>
-        </div>
-        <div class="card-financials-row">
-          <span class="card-financials-label">Extra Capital</span>
-          <span class="card-financials-val">${extraFunding ? formatCurrency(c.other_funding_raised) : '<span style="opacity:0.5; font-size:0.75rem;">Undisclosed</span>'}</span>
-        </div>
-        ${exitDisclosed ? `
-        <div class="card-financials-row" style="margin-top: 2px; padding-top: 2px; border-top: 1px dashed rgba(255,255,255,0.06);">
-          <span class="card-financials-label" style="font-weight: 500;">Exit Valuation</span>
-          <span class="card-financials-val success">${formatCurrency(c.exit_value)}</span>
-        </div>` : ''}
-      </div>
-    `;
-
-    // Map country for card footer
+    // Normalize country
     const countryVal = getCountryFromLocation(c.all_locations) || 'Remote';
-
-    card.innerHTML = `
-      <div class="card-top">
-        <img class="card-logo" src="${c.small_logo_thumb_url || ''}" alt="${c.name} logo" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%2327272a%22/><text x=%2250%25%22 y=%2250%25%22 font-family=%22Inter, sans-serif%22 font-weight=%22800%22 font-size=%2228%22 fill=%22%23a1a1aa%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22>?</text></svg>'">
-        <div class="card-badges">${badgesHtml}</div>
-      </div>
-      <h3 class="card-title">${c.name}</h3>
-      <p class="card-one-liner">${c.one_liner || 'No description available.'}</p>
-      ${financialHtml}
-      <div class="card-footer" style="margin-top: auto; padding-top: 8px;">
-        <span class="card-industry">${c.industry || 'Unspecified'}</span>
-        <span class="card-location" title="${c.all_locations || ''}">${countryVal} (${c.founded_year ? c.founded_year : 'N/A'})</span>
-      </div>
+    
+    // Formatted currencies
+    const ycDeal = formatCurrency(c.standard_yc_deal);
+    const extraCapital = c.other_funding_raised && c.other_funding_raised !== 'Undisclosed' ? formatCurrency(c.other_funding_raised) : 'Undisclosed';
+    const exitVal = c.exit_value && c.exit_value !== 'Undisclosed' && c.exit_value !== 'N/A' ? formatCurrency(c.exit_value) : 'Undisclosed';
+    
+    row.innerHTML = `
+      <td class="col-name">
+        <div class="col-name-cell">
+          <img class="table-logo" src="${c.small_logo_thumb_url || ''}" alt="${c.name} logo" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%2327272a%22/><text x=%2250%25%22 y=%2250%25%22 font-family=%22Inter, sans-serif%22 font-weight=%22800%22 font-size=%2220%22 fill=%22%23a1a1aa%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22>?</text></svg>'">
+          <span class="col-name-text">${c.name}</span>
+          <div class="table-badge-row">
+            ${topBadge}
+            ${hiringBadge}
+            ${tickerBadge}
+          </div>
+        </div>
+      </td>
+      <td class="col-batch">${c.batch || 'Stealth'}</td>
+      <td class="col-status"><span class="badge status-badge ${statusClass}">${c.status || 'Active'}</span></td>
+      <td class="col-industry dimmed" title="${c.industry || 'Unspecified'}">${c.industry || 'Unspecified'}</td>
+      <td class="col-yc-deal highlight">${ycDeal}</td>
+      <td class="col-extra-capital dimmed">${extraCapital}</td>
+      <td class="col-exit-value ${exitVal !== 'Undisclosed' ? 'success' : 'dimmed'}">${exitVal}</td>
+      <td class="col-founded dimmed">${c.founded_year ? c.founded_year : 'N/A'}</td>
+      <td class="col-team dimmed">${c.team_size ? c.team_size.toLocaleString() : 'N/A'}</td>
+      <td class="col-country dimmed" title="${c.all_locations || ''}">${countryVal}</td>
     `;
     
     const triggerDialog = () => openCompanyModal(c);
-    card.addEventListener('click', triggerDialog);
-    card.addEventListener('keydown', (e) => {
+    row.addEventListener('click', triggerDialog);
+    row.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         triggerDialog();
       }
     });
     
-    companyGrid.appendChild(card);
+    companyTableBody.appendChild(row);
   });
   
   if (end >= filteredCompanies.length) {
@@ -647,6 +648,7 @@ function openCompanyModal(c) {
 function renderCharts(data) {
   if (industryChartInstance) industryChartInstance.destroy();
   if (cohortChartInstance) cohortChartInstance.destroy();
+  if (statusChartInstance) statusChartInstance.destroy();
 
   // 1. Industry Distribution (Top 10)
   const industryCounts = {};
@@ -660,9 +662,7 @@ function renderCharts(data) {
   const indValues = sortedIndustries.map(x => x[1]);
 
   const indCtx = document.getElementById('industryChart').getContext('2d');
-  const indGradient = indCtx.createLinearGradient(0, 0, 400, 0);
-  indGradient.addColorStop(0, 'rgba(124, 58, 237, 0.85)'); // Purple
-  indGradient.addColorStop(1, 'rgba(59, 130, 246, 0.85)'); // Blue
+  const indColor = 'rgba(148, 163, 184, 0.75)'; // Slate 400 - monochromatic Slate Blue/Grey
 
   industryChartInstance = new Chart(indCtx, {
     type: 'bar',
@@ -671,36 +671,45 @@ function renderCharts(data) {
       datasets: [{
         label: 'Startups Count',
         data: indValues,
-        backgroundColor: indGradient,
+        backgroundColor: indColor,
         borderColor: 'rgba(255, 255, 255, 0.05)',
         borderWidth: 1,
-        borderRadius: 6,
-        barThickness: 16
+        borderRadius: 4,
+        barThickness: 10
       }]
     },
     options: {
       indexAxis: 'y',
       responsive: true,
       maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+        axis: 'y'
+      },
+      hover: {
+        mode: 'index',
+        intersect: false
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: 'rgba(17, 24, 39, 0.95)',
-          titleFont: { family: 'Inter', size: 13, weight: 'bold' },
-          bodyFont: { family: 'Inter', size: 12 },
-          borderColor: 'rgba(255, 255, 255, 0.12)',
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          titleFont: { family: 'Inter', size: 12, weight: 'bold' },
+          bodyFont: { family: 'Inter', size: 11 },
+          borderColor: 'rgba(255, 255, 255, 0.08)',
           borderWidth: 1,
-          padding: 12
+          padding: 10
         }
       },
       scales: {
         x: {
-          grid: { color: 'rgba(255, 255, 255, 0.05)' },
-          ticks: { color: 'hsl(215, 15%, 72%)', font: { family: 'Inter', size: 11 } }
+          grid: { color: 'rgba(255, 255, 255, 0.04)' },
+          ticks: { color: 'hsl(215, 12%, 75%)', font: { family: 'Inter', size: 10 } }
         },
         y: {
           grid: { display: false },
-          ticks: { color: 'hsl(210, 20%, 98%)', font: { family: 'Inter', size: 11, weight: '500' } }
+          ticks: { color: 'hsl(215, 12%, 75%)', font: { family: 'Inter', size: 10, weight: '500' } }
         }
       }
     }
@@ -725,9 +734,7 @@ function renderCharts(data) {
   const cohortCanvas = document.getElementById('cohortYearChart');
   if (cohortCanvas) {
     const cohortCtx = cohortCanvas.getContext('2d');
-    const cohortGradient = cohortCtx.createLinearGradient(0, 280, 0, 0);
-    cohortGradient.addColorStop(0, 'rgba(255, 102, 0, 0.15)'); // Soft YC Orange
-    cohortGradient.addColorStop(1, 'rgba(255, 102, 0, 0.85)'); // Bright YC Orange
+    const cohortColor = 'rgba(194, 65, 12, 0.7)'; // YC Terracotta/Rust (Desaturated Orange Accent)
 
     cohortChartInstance = new Chart(cohortCtx, {
       type: 'bar',
@@ -736,35 +743,113 @@ function renderCharts(data) {
         datasets: [{
           label: 'Startups Funded',
           data: cohortValues,
-          backgroundColor: cohortGradient,
-          borderColor: 'rgba(255, 102, 0, 0.4)',
-          borderWidth: 1.5,
-          borderRadius: 4,
-          barThickness: 'flex'
+          backgroundColor: cohortColor,
+          borderColor: 'rgba(194, 65, 12, 0.3)',
+          borderWidth: 1,
+          borderRadius: 3,
+          barPercentage: 0.65,
+          categoryPercentage: 0.8
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+          axis: 'x'
+        },
+        hover: {
+          mode: 'index',
+          intersect: false
+        },
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: 'rgba(17, 24, 39, 0.95)',
-            titleFont: { family: 'Inter', size: 13, weight: 'bold' },
-            bodyFont: { family: 'Inter', size: 12 },
-            borderColor: 'rgba(255, 102, 0, 0.3)',
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            titleFont: { family: 'Inter', size: 12, weight: 'bold' },
+            bodyFont: { family: 'Inter', size: 11 },
+            borderColor: 'rgba(194, 65, 12, 0.2)',
             borderWidth: 1,
-            padding: 12
+            padding: 10
           }
         },
         scales: {
           x: {
             grid: { display: false },
-            ticks: { color: 'hsl(215, 15%, 72%)', font: { family: 'Inter', size: 10 } }
+            ticks: { color: 'hsl(215, 12%, 75%)', font: { family: 'Inter', size: 9 } }
           },
           y: {
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-            ticks: { color: 'hsl(215, 15%, 72%)', font: { family: 'Inter', size: 10 } }
+            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+            ticks: { color: 'hsl(215, 12%, 75%)', font: { family: 'Inter', size: 9 } }
+          }
+        }
+      }
+    });
+  }
+
+  // 3. Operating Status (Vertical Bar Chart)
+  const statusCounts = { Active: 0, Acquired: 0, Public: 0, Inactive: 0 };
+  data.forEach(c => {
+    if (c.status in statusCounts) {
+      statusCounts[c.status]++;
+    }
+  });
+
+  const statusCanvas = document.getElementById('statusChart');
+  if (statusCanvas) {
+    const statusCtx = statusCanvas.getContext('2d');
+    statusChartInstance = new Chart(statusCtx, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(statusCounts),
+        datasets: [{
+          label: 'Companies',
+          data: Object.values(statusCounts),
+          backgroundColor: [
+            'rgba(134, 239, 172, 0.75)',  // Soft pastel green
+            'rgba(253, 224, 71, 0.75)',   // Soft pastel yellow
+            'rgba(147, 197, 253, 0.75)',  // Soft pastel blue
+            'rgba(203, 213, 225, 0.75)'   // Soft grey/slate
+          ],
+          borderColor: 'rgba(255, 255, 255, 0.05)',
+          borderWidth: 1,
+          borderRadius: 4,
+          barPercentage: 0.6,
+          categoryPercentage: 0.8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+          axis: 'x'
+        },
+        hover: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            titleFont: { family: 'Inter', size: 12, weight: 'bold' },
+            bodyFont: { family: 'Inter', size: 11 },
+            borderColor: 'rgba(255, 255, 255, 0.08)',
+            borderWidth: 1,
+            padding: 10
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: 'hsl(215, 12%, 75%)', font: { family: 'Inter', size: 10 } }
+          },
+          y: {
+            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+            ticks: { color: 'hsl(215, 12%, 75%)', font: { family: 'Inter', size: 10 } }
           }
         }
       }
