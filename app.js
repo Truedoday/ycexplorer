@@ -128,9 +128,6 @@ async function init() {
     // Initialize Filters
     populateFilterSelects(allCompanies);
     
-    // Initialize Charts
-    renderCharts(allCompanies);
-    
     // Set initial listings
     filteredCompanies = [...allCompanies];
     applyFiltersAndSearch();
@@ -537,6 +534,7 @@ function applyFiltersAndSearch() {
   sortCompanies(filteredCompanies, sortSelect.value);
   currentPage = 1;
   renderCompanies(false);
+  renderCharts(filteredCompanies);
 }
 
 // Reset Filters

@@ -53,28 +53,6 @@
       </a>
     </header>
 
-    <!-- Dashboard Analytics (3-Column Charts Grid) -->
-    <section class="analytics-grid" aria-label="Dataset Visualizations">
-      <div class="chart-container glass-panel">
-        <h2>Top Industries</h2>
-        <div class="chart-wrapper">
-          <canvas id="industryChart"></canvas>
-        </div>
-      </div>
-      <div class="chart-container glass-panel">
-        <h2>Startups Funded per Year</h2>
-        <div class="chart-wrapper">
-          <canvas id="cohortYearChart"></canvas>
-        </div>
-      </div>
-      <div class="chart-container glass-panel">
-        <h2>Operating Status</h2>
-        <div class="chart-wrapper">
-          <canvas id="statusChart"></canvas>
-        </div>
-      </div>
-    </section>
-
     <!-- Main Workspace (Filters + Table) -->
     <main class="main-workspace">
       <!-- Horizontal Filter Bar Panel -->
@@ -325,6 +303,28 @@
             </select>
           </div>
         </div>
+
+        <!-- Dashboard Analytics (3-Column Charts Grid) -->
+        <section class="analytics-grid" aria-label="Dataset Visualizations">
+          <div class="chart-container glass-panel">
+            <h2>Top Industries</h2>
+            <div class="chart-wrapper">
+              <canvas id="industryChart"></canvas>
+            </div>
+          </div>
+          <div class="chart-container glass-panel">
+            <h2>Startups Funded per Year</h2>
+            <div class="chart-wrapper">
+              <canvas id="cohortYearChart"></canvas>
+            </div>
+          </div>
+          <div class="chart-container glass-panel">
+            <h2>Operating Status</h2>
+            <div class="chart-wrapper">
+              <canvas id="statusChart"></canvas>
+            </div>
+          </div>
+        </section>
 
         <div class="table-container glass-panel" scrollbar-gutter="stable">
           <table class="dense-table" id="companyTable">
