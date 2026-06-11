@@ -18,11 +18,6 @@ const sortSelect = document.getElementById('sortSelect');
 
 // Filters
 const searchInput = document.getElementById('searchInput');
-const industrySelect = document.getElementById('industrySelect');
-const batchSelect = document.getElementById('batchSelect');
-const statusSelect = document.getElementById('statusSelect');
-const ycDealSelect = document.getElementById('ycDealSelect');
-const disclosedFundingSelect = document.getElementById('disclosedFundingSelect');
 const topCompanyCheckbox = document.getElementById('topCompanyCheckbox');
 const hiringCheckbox = document.getElementById('hiringCheckbox');
 const resetFiltersBtn = document.getElementById('resetFiltersBtn');
@@ -30,7 +25,15 @@ const resetFiltersBtn = document.getElementById('resetFiltersBtn');
 // New Advanced Filters DOM Elements
 const foundedMinSelect = document.getElementById('foundedMinSelect');
 const foundedMaxSelect = document.getElementById('foundedMaxSelect');
-const countrySelect = document.getElementById('countrySelect');
+
+// Custom Multiselect Instances
+let countryMultiselect = null;
+let teamSizeMultiselect = null;
+let industryMultiselect = null;
+let batchMultiselect = null;
+let statusMultiselect = null;
+let ycDealMultiselect = null;
+let disclosedFundingMultiselect = null;
 
 // Modal Elements
 const companyDialog = document.getElementById('companyDialog');
@@ -111,6 +114,15 @@ async function init() {
     // Default sorting (A-Z)
     sortCompanies(allCompanies, 'name_asc');
     
+    // Initialize Custom Multiselects
+    countryMultiselect = initMultiselect('countryMultiselect', 'All Countries', applyFiltersAndSearch);
+    teamSizeMultiselect = initMultiselect('teamSizeMultiselect', 'All Sizes', applyFiltersAndSearch);
+    industryMultiselect = initMultiselect('industryMultiselect', 'All Industries', applyFiltersAndSearch);
+    batchMultiselect = initMultiselect('batchMultiselect', 'All Batches', applyFiltersAndSearch);
+    statusMultiselect = initMultiselect('statusMultiselect', 'All Statuses', applyFiltersAndSearch);
+    ycDealMultiselect = initMultiselect('ycDealMultiselect', 'Any YC Deal', applyFiltersAndSearch);
+    disclosedFundingMultiselect = initMultiselect('disclosedFundingMultiselect', 'All Startups', applyFiltersAndSearch);
+
     // Initialize Filters
     populateFilterSelects(allCompanies);
     
@@ -149,11 +161,7 @@ function setupEventListeners() {
     debounceTimeout = setTimeout(applyFiltersAndSearch, 150);
   });
   
-  [
-    industrySelect, batchSelect, statusSelect, ycDealSelect, 
-    disclosedFundingSelect, foundedMinSelect, foundedMaxSelect, 
-    countrySelect
-  ].forEach(select => {
+  [foundedMinSelect, foundedMaxSelect].forEach(select => {
     select.addEventListener('change', applyFiltersAndSearch);
   });
   
@@ -161,8 +169,9 @@ function setupEventListeners() {
     cb.addEventListener('change', applyFiltersAndSearch);
   });
 
-  document.querySelectorAll('input[name="teamSize"]').forEach(cb => {
-    cb.addEventListener('change', applyFiltersAndSearch);
+  // Close multiselect dropdown panels when clicking outside
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.custom-multiselect').forEach(m => m.classList.remove('open'));
   });
   
   sortSelect.addEventListener('change', () => {
@@ -295,16 +304,93 @@ function parseBatch(batchStr) {
   return { year, seasonVal };
 }
 
+// Custom Multiselect Component Helper
+function initMultiselect(id, defaultLabel, onChange) {
+  const container = document.getElementById(id);
+  if (!container) return null;
+  const trigger = container.querySelector('.multiselect-trigger');
+  const labelSpan = container.querySelector('.multiselect-label');
+  const panel = container.querySelector('.multiselect-panel');
+
+  // Toggle open
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    // Close other multiselects first
+    document.querySelectorAll('.custom-multiselect').forEach(m => {
+      if (m !== container) m.classList.remove('open');
+    });
+    container.classList.toggle('open');
+  });
+
+  // Prevent closing when clicking inside panel
+  panel.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  // Update trigger label based on checked checkboxes
+  function updateTriggerLabel() {
+    const checked = Array.from(panel.querySelectorAll('input[type="checkbox"]:checked'));
+    if (checked.length === 0) {
+      labelSpan.textContent = defaultLabel;
+    } else if (checked.length === 1) {
+      labelSpan.textContent = checked[0].parentElement.textContent.trim();
+    } else {
+      labelSpan.textContent = `${defaultLabel} (${checked.length})`;
+    }
+  }
+
+  // Bind change listener to checkboxes
+  panel.addEventListener('change', (e) => {
+    if (e.target.tagName === 'INPUT' && e.target.type === 'checkbox') {
+      updateTriggerLabel();
+      if (onChange) onChange();
+    }
+  });
+
+  // Initial update
+  updateTriggerLabel();
+
+  return {
+    updateLabel: updateTriggerLabel,
+    getSelectedValues: () => {
+      return Array.from(panel.querySelectorAll('input[type="checkbox"]:checked')).map(el => el.value);
+    },
+    reset: () => {
+      panel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+      updateTriggerLabel();
+    },
+    setOptions: (options) => {
+      panel.innerHTML = '';
+      options.forEach(opt => {
+        const val = typeof opt === 'string' ? opt : opt.value;
+        const text = typeof opt === 'string' ? opt : opt.text;
+
+        const label = document.createElement('label');
+        label.className = 'checkbox-container';
+        
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = val;
+        
+        const span = document.createElement('span');
+        span.className = 'checkmark';
+
+        label.appendChild(input);
+        label.appendChild(span);
+        label.appendChild(document.createTextNode(text));
+
+        panel.appendChild(label);
+      });
+      updateTriggerLabel();
+    }
+  };
+}
+
 // Populate Dropdown Options
 function populateFilterSelects(data) {
   // Industries
   const industries = [...new Set(data.map(c => c.industry).filter(Boolean))].sort();
-  industries.forEach(ind => {
-    const opt = document.createElement('option');
-    opt.value = ind;
-    opt.textContent = ind;
-    industrySelect.appendChild(opt);
-  });
+  industryMultiselect.setOptions(industries);
   
   // Batches
   const batches = [...new Set(data.map(c => c.batch).filter(Boolean))];
@@ -314,13 +400,7 @@ function populateFilterSelects(data) {
     if (pa.year !== pb.year) return pb.year - pa.year;
     return pb.seasonVal - pa.seasonVal;
   });
-  
-  batches.forEach(b => {
-    const opt = document.createElement('option');
-    opt.value = b;
-    opt.textContent = b;
-    batchSelect.appendChild(opt);
-  });
+  batchMultiselect.setOptions(batches);
 
   // Founded Years (2005 to 2026)
   const years = [...new Set(data.map(c => c.founded_year).filter(Boolean))].sort((a, b) => b - a);
@@ -343,30 +423,25 @@ function populateFilterSelects(data) {
     if (country) countries.add(country);
   });
   const sortedCountries = [...countries].sort();
-  sortedCountries.forEach(country => {
-    const opt = document.createElement('option');
-    opt.value = country;
-    opt.textContent = country;
-    countrySelect.appendChild(opt);
-  });
+  countryMultiselect.setOptions(sortedCountries);
 }
 
 // Filtering and Searching
 function applyFiltersAndSearch() {
   const query = searchInput.value.toLowerCase().trim();
-  const industry = industrySelect.value;
-  const batch = batchSelect.value;
-  const status = statusSelect.value;
-  const ycDeal = ycDealSelect.value;
-  const disclosedFunding = disclosedFundingSelect.value;
+  const selectedCountries = countryMultiselect ? countryMultiselect.getSelectedValues() : [];
+  const selectedSizes = teamSizeMultiselect ? teamSizeMultiselect.getSelectedValues() : [];
+  const selectedIndustries = industryMultiselect ? industryMultiselect.getSelectedValues() : [];
+  const selectedBatches = batchMultiselect ? batchMultiselect.getSelectedValues() : [];
+  const selectedStatuses = statusMultiselect ? statusMultiselect.getSelectedValues() : [];
+  const selectedDeals = ycDealMultiselect ? ycDealMultiselect.getSelectedValues().map(Number) : [];
+  const selectedFunding = disclosedFundingMultiselect ? disclosedFundingMultiselect.getSelectedValues() : [];
   const isTop = topCompanyCheckbox.checked;
   const isHiring = hiringCheckbox.checked;
 
   // New Advanced Filters
   const foundedMin = foundedMinSelect.value ? Number(foundedMinSelect.value) : null;
   const foundedMax = foundedMaxSelect.value ? Number(foundedMaxSelect.value) : null;
-  const country = countrySelect.value;
-  const checkedSizes = Array.from(document.querySelectorAll('input[name="teamSize"]:checked')).map(el => el.value);
   
   filteredCompanies = allCompanies.filter(c => {
     // 1. Text Search
@@ -389,17 +464,22 @@ function applyFiltersAndSearch() {
       if (!matchText) return false;
     }
     
-    // 2. Select filters
-    if (industry && c.industry !== industry) return false;
-    if (batch && c.batch !== batch) return false;
-    if (status && c.status !== status) return false;
-    if (ycDeal && (c.standard_yc_deal || 0) < Number(ycDeal)) return false;
+    // 2. Multiselect filters
+    if (selectedIndustries.length > 0 && !selectedIndustries.includes(c.industry)) return false;
+    if (selectedBatches.length > 0 && !selectedBatches.includes(c.batch)) return false;
+    if (selectedStatuses.length > 0 && !selectedStatuses.includes(c.status)) return false;
+    
+    if (selectedDeals.length > 0) {
+      const deal = c.standard_yc_deal || 0;
+      const minThreshold = Math.min(...selectedDeals);
+      if (deal < minThreshold) return false;
+    }
     
     // 3. Disclosed funding status
-    if (disclosedFunding) {
+    if (selectedFunding.length > 0 && selectedFunding.length < 2) {
       const hasFunding = c.other_funding_raised && c.other_funding_raised !== 'Undisclosed';
-      if (disclosedFunding === 'has_funding' && !hasFunding) return false;
-      if (disclosedFunding === 'undisclosed' && hasFunding) return false;
+      if (selectedFunding.includes('has_funding') && !hasFunding) return false;
+      if (selectedFunding.includes('undisclosed') && hasFunding) return false;
     }
     
     // 4. Founded year ranges
@@ -407,22 +487,22 @@ function applyFiltersAndSearch() {
     if (foundedMax && (!c.founded_year || c.founded_year > foundedMax)) return false;
 
     // 5. Country matching
-    if (country) {
+    if (selectedCountries.length > 0) {
       const companyCountry = getCountryFromLocation(c.all_locations);
-      if (companyCountry !== country) return false;
+      if (!selectedCountries.includes(companyCountry)) return false;
     }
 
     // 6. Team size brackets (multi-select checkboxes)
-    if (checkedSizes.length > 0) {
+    if (selectedSizes.length > 0) {
       const size = c.team_size;
       if (size === undefined || size === null || isNaN(size)) return false;
       
       let matchesSize = false;
-      if (checkedSizes.includes('1-10') && size >= 1 && size <= 10) matchesSize = true;
-      if (checkedSizes.includes('11-50') && size >= 11 && size <= 50) matchesSize = true;
-      if (checkedSizes.includes('51-200') && size >= 51 && size <= 200) matchesSize = true;
-      if (checkedSizes.includes('201-500') && size >= 201 && size <= 500) matchesSize = true;
-      if (checkedSizes.includes('500+') && size >= 501) matchesSize = true;
+      if (selectedSizes.includes('1-10') && size >= 1 && size <= 10) matchesSize = true;
+      if (selectedSizes.includes('11-50') && size >= 11 && size <= 50) matchesSize = true;
+      if (selectedSizes.includes('51-200') && size >= 51 && size <= 200) matchesSize = true;
+      if (selectedSizes.includes('201-500') && size >= 201 && size <= 500) matchesSize = true;
+      if (selectedSizes.includes('500+') && size >= 501) matchesSize = true;
       
       if (!matchesSize) return false;
     }
@@ -442,18 +522,16 @@ function applyFiltersAndSearch() {
 // Reset Filters
 function resetFilters() {
   searchInput.value = '';
-  industrySelect.value = '';
-  batchSelect.value = '';
-  statusSelect.value = '';
-  ycDealSelect.value = '';
-  disclosedFundingSelect.value = '';
   foundedMinSelect.value = '';
   foundedMaxSelect.value = '';
-  countrySelect.value = '';
   
-  document.querySelectorAll('input[name="teamSize"]').forEach(cb => {
-    cb.checked = false;
-  });
+  if (countryMultiselect) countryMultiselect.reset();
+  if (teamSizeMultiselect) teamSizeMultiselect.reset();
+  if (industryMultiselect) industryMultiselect.reset();
+  if (batchMultiselect) batchMultiselect.reset();
+  if (statusMultiselect) statusMultiselect.reset();
+  if (ycDealMultiselect) ycDealMultiselect.reset();
+  if (disclosedFundingMultiselect) disclosedFundingMultiselect.reset();
   
   topCompanyCheckbox.checked = false;
   hiringCheckbox.checked = false;
@@ -602,11 +680,6 @@ function renderCompanies(append = false) {
 
 // Open Dialog
 function openCompanyModal(c) {
-  const dialogBody = document.querySelector('.dialog-body');
-  if (dialogBody) {
-    dialogBody.scrollTop = 0;
-  }
-
   modalLogo.src = c.small_logo_thumb_url || '';
   modalLogo.alt = `${c.name} logo`;
   modalName.textContent = c.name;
@@ -668,6 +741,12 @@ function openCompanyModal(c) {
   }
   
   companyDialog.showModal();
+  
+  // Reset scroll position after dialog is shown and focused
+  const dialogBody = document.querySelector('.dialog-body');
+  if (dialogBody) {
+    dialogBody.scrollTop = 0;
+  }
 }
 
 // Render Charts

@@ -439,6 +439,82 @@ select option {
   color: var(--text-main);
 }
 
+/* Custom Multiselect */
+.custom-multiselect {
+  position: relative;
+  width: 100%;
+}
+.multiselect-trigger {
+  width: 100%;
+  padding: 10px 14px;
+  padding-right: 36px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  color: var(--text-main);
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  transition: var(--transition);
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.custom-multiselect.open .multiselect-trigger {
+  border-color: var(--primary);
+}
+.multiselect-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background-color: var(--bg-dark);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  padding: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.custom-multiselect.open .multiselect-panel {
+  display: block;
+}
+.multiselect-panel .checkbox-container {
+  padding: 6px 8px 6px 28px;
+  margin: 2px 0;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+}
+.multiselect-panel .checkbox-container:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.multiselect-panel .checkmark {
+  top: 7px;
+  left: 6px;
+}
+
+
+.checkbox-row-horizontal {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  height: 38px;
+}
+
 /* Checkboxes */
 .checkboxes {
   gap: 12px;
