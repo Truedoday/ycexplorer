@@ -31,7 +31,6 @@ const resetFiltersBtn = document.getElementById('resetFiltersBtn');
 const foundedMinSelect = document.getElementById('foundedMinSelect');
 const foundedMaxSelect = document.getElementById('foundedMaxSelect');
 const countrySelect = document.getElementById('countrySelect');
-const teamSizeSelect = document.getElementById('teamSizeSelect');
 
 // Modal Elements
 const companyDialog = document.getElementById('companyDialog');
@@ -153,12 +152,16 @@ function setupEventListeners() {
   [
     industrySelect, batchSelect, statusSelect, ycDealSelect, 
     disclosedFundingSelect, foundedMinSelect, foundedMaxSelect, 
-    countrySelect, teamSizeSelect
+    countrySelect
   ].forEach(select => {
     select.addEventListener('change', applyFiltersAndSearch);
   });
   
   [topCompanyCheckbox, hiringCheckbox].forEach(cb => {
+    cb.addEventListener('change', applyFiltersAndSearch);
+  });
+
+  document.querySelectorAll('input[name="teamSize"]').forEach(cb => {
     cb.addEventListener('change', applyFiltersAndSearch);
   });
   
@@ -281,7 +284,14 @@ function parseBatch(batchStr) {
   if (parts.length !== 2) return { year: 0, seasonVal: 0 };
   const season = parts[0];
   const year = parseInt(parts[1], 10);
-  const seasonVal = season === 'Winter' ? 1 : 2;
+  
+  // Chronological order: Winter=1, Spring=2, Summer=3, Fall=4
+  let seasonVal = 0;
+  if (season === 'Winter') seasonVal = 1;
+  else if (season === 'Spring') seasonVal = 2;
+  else if (season === 'Summer') seasonVal = 3;
+  else if (season === 'Fall') seasonVal = 4;
+  
   return { year, seasonVal };
 }
 
@@ -356,7 +366,7 @@ function applyFiltersAndSearch() {
   const foundedMin = foundedMinSelect.value ? Number(foundedMinSelect.value) : null;
   const foundedMax = foundedMaxSelect.value ? Number(foundedMaxSelect.value) : null;
   const country = countrySelect.value;
-  const teamSize = teamSizeSelect.value;
+  const checkedSizes = Array.from(document.querySelectorAll('input[name="teamSize"]:checked')).map(el => el.value);
   
   filteredCompanies = allCompanies.filter(c => {
     // 1. Text Search
@@ -402,15 +412,19 @@ function applyFiltersAndSearch() {
       if (companyCountry !== country) return false;
     }
 
-    // 6. Team size brackets
-    if (teamSize) {
+    // 6. Team size brackets (multi-select checkboxes)
+    if (checkedSizes.length > 0) {
       const size = c.team_size;
       if (size === undefined || size === null || isNaN(size)) return false;
-      if (teamSize === '1-10' && (size < 1 || size > 10)) return false;
-      if (teamSize === '11-50' && (size < 11 || size > 50)) return false;
-      if (teamSize === '51-200' && (size < 51 || size > 200)) return false;
-      if (teamSize === '201-500' && (size < 201 || size > 500)) return false;
-      if (teamSize === '500+' && size < 501) return false;
+      
+      let matchesSize = false;
+      if (checkedSizes.includes('1-10') && size >= 1 && size <= 10) matchesSize = true;
+      if (checkedSizes.includes('11-50') && size >= 11 && size <= 50) matchesSize = true;
+      if (checkedSizes.includes('51-200') && size >= 51 && size <= 200) matchesSize = true;
+      if (checkedSizes.includes('201-500') && size >= 201 && size <= 500) matchesSize = true;
+      if (checkedSizes.includes('500+') && size >= 501) matchesSize = true;
+      
+      if (!matchesSize) return false;
     }
 
     // 7. Checkboxes
@@ -436,7 +450,11 @@ function resetFilters() {
   foundedMinSelect.value = '';
   foundedMaxSelect.value = '';
   countrySelect.value = '';
-  teamSizeSelect.value = '';
+  
+  document.querySelectorAll('input[name="teamSize"]').forEach(cb => {
+    cb.checked = false;
+  });
+  
   topCompanyCheckbox.checked = false;
   hiringCheckbox.checked = false;
   sortSelect.value = 'name_asc';
@@ -584,6 +602,11 @@ function renderCompanies(append = false) {
 
 // Open Dialog
 function openCompanyModal(c) {
+  const dialogBody = document.querySelector('.dialog-body');
+  if (dialogBody) {
+    dialogBody.scrollTop = 0;
+  }
+
   modalLogo.src = c.small_logo_thumb_url || '';
   modalLogo.alt = `${c.name} logo`;
   modalName.textContent = c.name;

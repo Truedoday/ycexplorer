@@ -73,114 +73,145 @@
       <section class="filters-top-panel glass-panel" aria-label="Filters">
         <form id="filtersForm" class="filters-horizontal-form" onsubmit="event.preventDefault();">
           
-          <!-- Search Block -->
-          <div class="filter-group">
-            <label for="searchInput">Search Startups</label>
-            <div class="search-input-wrapper">
-              <input type="text" id="searchInput" placeholder="Search name, ticker, investors, tags..." autocomplete="off">
-              <span class="search-icon">🔍</span>
+          <!-- Top Grid of Dropdown Selects & Search -->
+          <div class="filters-grid">
+            
+            <!-- Search Block -->
+            <div class="filter-group">
+              <label for="searchInput">Search Startups</label>
+              <div class="search-input-wrapper">
+                <input type="text" id="searchInput" placeholder="Search name, ticker, investors, tags..." autocomplete="off">
+                <span class="search-icon">🔍</span>
+              </div>
             </div>
-          </div>
 
-          <!-- Founded Year range filter -->
-          <div class="filter-group">
-            <label>Founded Years</label>
-            <div class="filter-group-row">
-              <select id="foundedMinSelect" style="padding-right: 20px; background-position: right 6px center;">
-                <option value="">Min</option>
+            <!-- Founded Year range filter -->
+            <div class="filter-group">
+              <label>Founded Years</label>
+              <div class="filter-group-row">
+                <select id="foundedMinSelect" style="padding-right: 20px; background-position: right 6px center;">
+                  <option value="">Min</option>
+                </select>
+                <select id="foundedMaxSelect" style="padding-right: 20px; background-position: right 6px center;">
+                  <option value="">Max</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Country Filter -->
+            <div class="filter-group">
+              <label for="countrySelect">Country</label>
+              <select id="countrySelect">
+                <option value="">All Countries</option>
               </select>
-              <select id="foundedMaxSelect" style="padding-right: 20px; background-position: right 6px center;">
-                <option value="">Max</option>
+            </div>
+
+            <!-- Industry Filter -->
+            <div class="filter-group">
+              <label for="industrySelect">Industry</label>
+              <select id="industrySelect">
+                <option value="">All Industries</option>
               </select>
             </div>
-          </div>
 
-          <!-- Country Filter -->
-          <div class="filter-group">
-            <label for="countrySelect">Country</label>
-            <select id="countrySelect">
-              <option value="">All Countries</option>
-            </select>
-          </div>
-
-          <!-- Team Size Filter -->
-          <div class="filter-group">
-            <label for="teamSizeSelect">Team Size</label>
-            <select id="teamSizeSelect">
-              <option value="">All Sizes</option>
-              <option value="1-10">1 - 10</option>
-              <option value="11-50">11 - 50</option>
-              <option value="51-200">51 - 200</option>
-              <option value="201-500">201 - 500</option>
-              <option value="500+">500+</option>
-            </select>
-          </div>
-
-          <!-- Industry Filter -->
-          <div class="filter-group">
-            <label for="industrySelect">Industry</label>
-            <select id="industrySelect">
-              <option value="">All Industries</option>
-            </select>
-          </div>
-
-          <!-- Batch Filter -->
-          <div class="filter-group">
-            <label for="batchSelect">YC Batch</label>
-            <select id="batchSelect">
-              <option value="">All Batches</option>
-            </select>
-          </div>
-
-          <!-- Status Filter -->
-          <div class="filter-group">
-            <label for="statusSelect">Operating Status</label>
-            <select id="statusSelect">
-              <option value="">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Acquired">Acquired</option>
-              <option value="Public">Public</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-          </div>
-
-          <!-- Min YC Deal size Filter -->
-          <div class="filter-group">
-            <label for="ycDealSelect">Min YC Deal</label>
-            <select id="ycDealSelect">
-              <option value="">Any YC Deal</option>
-              <option value="500000">Min $500k</option>
-              <option value="150000">Min $150k</option>
-              <option value="120000">Min $120k</option>
-              <option value="100000">Min $100k</option>
-            </select>
-          </div>
-
-          <!-- Disclosed Funding Filter -->
-          <div class="filter-group">
-            <label for="disclosedFundingSelect">Extra Funding</label>
-            <select id="disclosedFundingSelect">
-              <option value="">All Startups</option>
-              <option value="has_funding">Has Funding</option>
-              <option value="undisclosed">Undisclosed Only</option>
-            </select>
-          </div>
-
-          <!-- Toggle Flags & Reset Button -->
-          <div class="filter-group filter-actions">
-            <div class="checkbox-row">
-              <label class="checkbox-container">
-                <input type="checkbox" id="topCompanyCheckbox">
-                <span class="checkmark"></span>
-                Top YC
-              </label>
-              <label class="checkbox-container">
-                <input type="checkbox" id="hiringCheckbox">
-                <span class="checkmark"></span>
-                Hiring
-              </label>
+            <!-- Batch Filter -->
+            <div class="filter-group">
+              <label for="batchSelect">YC Batch</label>
+              <select id="batchSelect">
+                <option value="">All Batches</option>
+              </select>
             </div>
-            <button type="button" id="resetFiltersBtn" class="btn btn-secondary" style="padding: 8px 12px; font-size: 0.8rem; height: 36px; width: 100%;">Reset Filters</button>
+
+            <!-- Status Filter -->
+            <div class="filter-group">
+              <label for="statusSelect">Operating Status</label>
+              <select id="statusSelect">
+                <option value="">All Statuses</option>
+                <option value="Active">Active</option>
+                <option value="Acquired">Acquired</option>
+                <option value="Public">Public</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+
+            <!-- Min YC Deal size Filter -->
+            <div class="filter-group">
+              <label for="ycDealSelect">Min YC Deal</label>
+              <select id="ycDealSelect">
+                <option value="">Any YC Deal</option>
+                <option value="500000">Min $500k</option>
+                <option value="150000">Min $150k</option>
+                <option value="120000">Min $120k</option>
+                <option value="100000">Min $100k</option>
+              </select>
+            </div>
+
+            <!-- Disclosed Funding Filter -->
+            <div class="filter-group">
+              <label for="disclosedFundingSelect">Extra Funding</label>
+              <select id="disclosedFundingSelect">
+                <option value="">All Startups</option>
+                <option value="has_funding">Has Funding</option>
+                <option value="undisclosed">Undisclosed Only</option>
+              </select>
+            </div>
+            
+          </div>
+          
+          <!-- Bottom Row: Multi-select Checkboxes & Actions -->
+          <div class="filters-checkbox-row">
+            
+            <div class="checkbox-group">
+              <span class="group-label">Team Size</span>
+              <div class="checkbox-options">
+                <label class="checkbox-container">
+                  <input type="checkbox" name="teamSize" value="1-10">
+                  <span class="checkmark"></span>
+                  1 - 10
+                </label>
+                <label class="checkbox-container">
+                  <input type="checkbox" name="teamSize" value="11-50">
+                  <span class="checkmark"></span>
+                  11 - 50
+                </label>
+                <label class="checkbox-container">
+                  <input type="checkbox" name="teamSize" value="51-200">
+                  <span class="checkmark"></span>
+                  51 - 200
+                </label>
+                <label class="checkbox-container">
+                  <input type="checkbox" name="teamSize" value="201-500">
+                  <span class="checkmark"></span>
+                  201 - 500
+                </label>
+                <label class="checkbox-container">
+                  <input type="checkbox" name="teamSize" value="500+">
+                  <span class="checkmark"></span>
+                  500+
+                </label>
+              </div>
+            </div>
+            
+            <div class="checkbox-group">
+              <span class="group-label">Toggles</span>
+              <div class="checkbox-options">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="topCompanyCheckbox">
+                  <span class="checkmark"></span>
+                  Top YC
+                </label>
+                <label class="checkbox-container">
+                  <input type="checkbox" id="hiringCheckbox">
+                  <span class="checkmark"></span>
+                  Hiring
+                </label>
+              </div>
+            </div>
+            
+            <div class="actions-group">
+              <button type="button" id="resetFiltersBtn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.82rem; height: 36px;">Reset Filters</button>
+            </div>
+            
           </div>
 
         </form>
