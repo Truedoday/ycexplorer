@@ -808,6 +808,10 @@ select option {
   transition: var(--transition);
   z-index: 10;
 }
+.close-btn:focus,
+.close-btn:focus-visible {
+  outline: none;
+}
 .close-btn:hover {
   color: var(--text-main);
   transform: rotate(90deg);
