@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YC Startups Explorer - Financial & Temporal Dashboard</title>
+  <meta name="description" content="Explore, search, filter, and visualize the full dataset of 5,950+ Y Combinator funded startups. Real financial valuations, exits, funding rounds, and batch histories.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <!-- Chart.js CDN for visualisations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  <!-- Application logic -->
+  <script src="app.js" defer></script>
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loader-content">
+      <div class="spinner"></div>
+      <h1>Loading YC Startups Dataset...</h1>
+      <p>Parsing database records & real financial metadata (5,956 companies)</p>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header glass-panel">
+      <div class="header-logo-title">
+        <div class="logo-y">Y</div>
+        <div class="title-meta">
+          <h1>YC Startups Explorer</h1>
+          <p>Financial & Temporal Analytics Dashboard</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="pulse-badge">Live Dataset</span>
+        <span class="last-updated">Compiled: June 2026</span>
+      </div>
+    </header>
+
+    <!-- Key Metrics Section -->
+    <section class="metrics-grid" aria-label="Key Performance Indicators">
+      <div class="metric-card glass-panel" id="metricTotal">
+        <div class="metric-icon total">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+          </svg>
+        </div>
+        <div class="metric-info">
+          <h3>Total Startups</h3>
+          <p class="metric-value">-</p>
+        </div>
+      </div>
+      <div class="metric-card glass-panel" id="metricPublic">
+        <div class="metric-icon active">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+            <path d="M2 17l6-6 4 4 8-8"></path>
+          </svg>
+        </div>
+        <div class="metric-info">
+          <h3>Public Companies</h3>
+          <p class="metric-value">-</p>
+          <span class="metric-subtext">On Stock Exchange</span>
+        </div>
+      </div>
+      <div class="metric-card glass-panel" id="metricTop">
+        <div class="metric-icon top">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+            <path d="M4 22h16"></path>
+            <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"></path>
+            <path d="M12 2a7 7 0 0 0-7 7h14a7 7 0 0 0-7-7z"></path>
+          </svg>
+        </div>
+        <div class="metric-info">
+          <h3>Top Companies</h3>
+          <p class="metric-value">-</p>
+          <span class="metric-subtext">High Valuation</span>
+        </div>
+      </div>
+      <div class="metric-card glass-panel" id="metricExits">
+        <div class="metric-icon exit">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+          </svg>
+        </div>
+        <div class="metric-info">
+          <h3>Exited Startups</h3>
+          <p class="metric-value">-</p>
+          <span class="metric-subtext">IPO or Acquired Val</span>
+        </div>
+      </div>
+      <div class="metric-card glass-panel" id="metricCapital">
+        <div class="metric-icon capital">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path>
+          </svg>
+        </div>
+        <div class="metric-info">
+          <h3>Est. YC Capital</h3>
+          <p class="metric-value">-</p>
+          <span class="metric-subtext">Standard Deal Sum</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Compact Operating Status Horizontal Progress Bar -->
+    <section class="status-summary-panel glass-panel" aria-label="Operating Status Distribution">
+      <div class="status-summary-header">
+        <h2>Operating Status Distribution</h2>
+        <span class="status-summary-subtitle">Proportion of operating categories across the YC portfolio</span>
+      </div>
+      <div class="status-progress-bar" id="statusBar">
+        <!-- Segments will be set dynamically via JS -->
+      </div>
+      <div class="status-legend" id="statusLegend">
+        <!-- Legend items will be set dynamically -->
+      </div>
+    </section>
+
+    <!-- Dashboard Analytics (Charts Grid) -->
+    <section class="analytics-grid" aria-label="Dataset Visualizations">
+      <div class="chart-container glass-panel">
+        <h2>Top Industries</h2>
+        <div class="chart-wrapper">
+          <canvas id="industryChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-container glass-panel">
+        <h2>Startups Funded per Year (Cohort Volume)</h2>
+        <div class="chart-wrapper">
+          <canvas id="cohortYearChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Workspace (Filters + List) -->
+    <main class="main-workspace">
+      <!-- Sidebar Filters -->
+      <aside class="sidebar-filters glass-panel">
+        <h2>Filters</h2>
+        <form id="filtersForm" onsubmit="event.preventDefault();">
+          
+          <!-- Search Block -->
+          <div class="filter-group">
+            <label for="searchInput">Search Startups</label>
+            <div class="search-input-wrapper">
+              <input type="text" id="searchInput" placeholder="Search name, ticker, investors, tags..." autocomplete="off">
+              <span class="search-icon">🔍</span>
+            </div>
+          </div>
+
+          <!-- Founded Year range filter -->
+          <div class="filter-group-row">
+            <div class="filter-group">
+              <label for="foundedMinSelect">Min Founded Year</label>
+              <select id="foundedMinSelect">
+                <option value="">Any</option>
+                <!-- Dynamic options -->
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="foundedMaxSelect">Max Founded Year</label>
+              <select id="foundedMaxSelect">
+                <option value="">Any</option>
+                <!-- Dynamic options -->
+              </select>
+            </div>
+          </div>
+
+          <!-- Country Filter -->
+          <div class="filter-group">
+            <label for="countrySelect">Country</label>
+            <select id="countrySelect">
+              <option value="">All Countries</option>
+              <!-- Dynamic options -->
+            </select>
+          </div>
+
+          <!-- Team Size Filter -->
+          <div class="filter-group">
+            <label for="teamSizeSelect">Team Size</label>
+            <select id="teamSizeSelect">
+              <option value="">All Sizes</option>
+              <option value="1-10">1 - 10 employees</option>
+              <option value="11-50">11 - 50 employees</option>
+              <option value="51-200">51 - 200 employees</option>
+              <option value="201-500">201 - 500 employees</option>
+              <option value="500+">500+ employees</option>
+            </select>
+          </div>
+
+          <!-- Industry Filter -->
+          <div class="filter-group">
+            <label for="industrySelect">Industry</label>
+            <select id="industrySelect">
+              <option value="">All Industries</option>
+              <!-- Dynamic options -->
+            </select>
+          </div>
+
+          <!-- Batch Filter -->
+          <div class="filter-group">
+            <label for="batchSelect">YC Batch</label>
+            <select id="batchSelect">
+              <option value="">All Batches</option>
+              <!-- Dynamic options -->
+            </select>
+          </div>
+
+          <!-- Status Filter -->
+          <div class="filter-group">
+            <label for="statusSelect">Operating Status</label>
+            <select id="statusSelect">
+              <option value="">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Acquired">Acquired</option>
+              <option value="Public">Public</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+
+          <!-- Min YC Deal size Filter -->
+          <div class="filter-group">
+            <label for="ycDealSelect">Min YC Investment Deal</label>
+            <select id="ycDealSelect">
+              <option value="">Any YC Deal</option>
+              <option value="500000">Min $500k (2022+ SAFE)</option>
+              <option value="150000">Min $150k (2018-2021)</option>
+              <option value="120000">Min $120k (2014-2017)</option>
+              <option value="100000">Min $100k (2011-2013)</option>
+            </select>
+          </div>
+
+          <!-- Disclosed Funding Filter -->
+          <div class="filter-group">
+            <label for="disclosedFundingSelect">Disclosed Extra Funding</label>
+            <select id="disclosedFundingSelect">
+              <option value="">All Startups</option>
+              <option value="has_funding">Has Disclosed Funding</option>
+              <option value="undisclosed">Undisclosed / Private Only</option>
+            </select>
+          </div>
+
+          <!-- Toggle Flags -->
+          <div class="filter-group checkboxes">
+            <label class="checkbox-container">
+              <input type="checkbox" id="topCompanyCheckbox">
+              <span class="checkmark"></span>
+              Top YC Company 🏆
+            </label>
+            <label class="checkbox-container">
+              <input type="checkbox" id="hiringCheckbox">
+              <span class="checkmark"></span>
+              Actively Hiring
+            </label>
+          </div>
+
+          <!-- Reset Button -->
+          <button type="button" id="resetFiltersBtn" class="btn btn-secondary">Reset Filters</button>
+
+        </form>
+      </aside>
+
+      <!-- Results List Grid -->
+      <section class="results-section" aria-label="Company Listings">
+        <div class="results-header">
+          <h2 id="resultsCount">Found 0 startups</h2>
+          <div class="sort-selector">
+            <label for="sortSelect">Sort By</label>
+            <select id="sortSelect">
+              <option value="name_asc">Name (A-Z)</option>
+              <option value="name_desc">Name (Z-A)</option>
+              <option value="founded_desc">Founded Year (Newest)</option>
+              <option value="founded_asc">Founded Year (Oldest)</option>
+              <option value="team_desc">Team Size (Largest)</option>
+              <option value="team_asc">Team Size (Smallest)</option>
+              <option value="yc_deal_desc">YC Investment (Highest)</option>
+              <option value="yc_deal_asc">YC Investment (Lowest)</option>
+              <option value="funding_desc">Disclosed Funding (Highest)</option>
+              <option value="exit_desc">Exit Valuation (Highest)</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="companyGrid" class="company-grid" scrollbar-gutter="stable">
+          <!-- Company Cards will load dynamically -->
+        </div>
+
+        <!-- Load More Section -->
+        <div class="load-more-container">
+          <button id="loadMoreBtn" class="btn btn-primary">Load More Startups</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Native Accessible Modal Dialog -->
+  <dialog id="companyDialog" class="glass-dialog">
+    <div class="dialog-content">
+      <button id="closeDialogBtn" class="close-btn" aria-label="Close modal">&times;</button>
+      
+      <div class="dialog-header">
+        <img id="modalLogo" src="" alt="Company Logo" class="modal-logo" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%2327272a%22/><text x=%2250%25%22 y=%2250%25%22 font-family=%22Inter, sans-serif%22 font-weight=%22800%22 font-size=%2228%22 fill=%22%23a1a1aa%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22>?</text></svg>'">
+        <div class="modal-title-area">
+          <div class="modal-title-row">
+            <h2 id="modalName">Company Name</h2>
+            <span id="modalTopBadge" class="badge top-badge" title="YC Top Company">🏆 Top YC</span>
+          </div>
+          <p id="modalOneLiner" class="modal-one-liner">One-liner description</p>
+          <div class="modal-badges" id="modalHeaderBadges">
+            <span id="modalBatchBadge" class="badge batch-badge">-</span>
+            <span id="modalStatusBadge" class="badge status-badge">-</span>
+            <span id="modalHiringBadge" class="badge hiring-badge">💼 Hiring</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-body">
+        <div class="dialog-left">
+          <h3>About</h3>
+          <p id="modalLongDescription" class="long-description">-</p>
+          
+          <div class="modal-former-names" id="modalFormerNamesContainer">
+            <h4>Former Names</h4>
+            <p id="modalFormerNames">-</p>
+          </div>
+
+          <div class="modal-links">
+            <a id="modalWebsiteLink" href="" target="_blank" rel="noopener" class="btn btn-primary">Visit Website 🌐</a>
+            <a id="modalYcLink" href="" target="_blank" rel="noopener" class="btn btn-secondary">YC Profile 🍊</a>
+          </div>
+        </div>
+
+        <div class="dialog-right">
+          <h3>Financial & Temporal Profile</h3>
+          <table class="details-table">
+            <tr>
+              <th>Founded Year</th>
+              <td id="modalFoundedYear">-</td>
+            </tr>
+            <tr>
+              <th>Exit Year</th>
+              <td id="modalExitYear">-</td>
+            </tr>
+            <tr>
+              <th>YC Invest Check</th>
+              <td id="modalYcDeal" style="font-weight: 600; color: var(--text-main);">-</td>
+            </tr>
+            <tr>
+              <th>Disclosed Funding</th>
+              <td id="modalFundingRaised">-</td>
+            </tr>
+            <tr>
+              <th>Valuation / Market Cap</th>
+              <td id="modalExitValue" style="font-weight: 700; color: var(--color-active);">-</td>
+            </tr>
+            <tr>
+              <th>Stock Ticker</th>
+              <td id="modalTicker" style="font-family: monospace; font-weight: bold;">-</td>
+            </tr>
+            <tr>
+              <th>Acquired By</th>
+              <td id="modalAcquiredBy">-</td>
+            </tr>
+            <tr>
+              <th>Profitability</th>
+              <td id="modalProfit">-</td>
+            </tr>
+            <tr>
+              <th>Lead Investors</th>
+              <td id="modalInvestors">-</td>
+            </tr>
+          </table>
+
+          <h3>Company Details</h3>
+          <table class="details-table">
+            <tr>
+              <th>Industry</th>
+              <td id="modalIndustry">-</td>
+            </tr>
+            <tr>
+              <th>Team Size</th>
+              <td id="modalTeamSize">-</td>
+            </tr>
+            <tr>
+              <th>Stage</th>
+              <td id="modalStage">-</td>
+            </tr>
+            <tr>
+              <th>Locations</th>
+              <td id="modalLocations">-</td>
+            </tr>
+          </table>
+
+          <div class="modal-tags-section">
+            <h3>Tags</h3>
+            <div id="modalTags" class="tags-container">
+              <!-- Dynamic tags -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+</body>
+</html>
