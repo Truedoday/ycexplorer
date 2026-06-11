@@ -561,15 +561,85 @@ select option {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
+  min-width: 0;
 }
 .col-name-text {
   font-weight: 600;
   color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 0 1 auto;
 }
 .table-badge-row {
   display: inline-flex;
   gap: 4px;
   align-items: center;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.status-badge {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass);
+}
+
+.status-active {
+  background: rgba(134, 239, 172, 0.1) !important;
+  color: var(--color-active) !important;
+  border: 1px solid rgba(134, 239, 172, 0.25) !important;
+}
+.status-acquired {
+  background: rgba(253, 224, 71, 0.1) !important;
+  color: var(--color-acquired) !important;
+  border: 1px solid rgba(253, 224, 71, 0.25) !important;
+}
+.status-public {
+  background: rgba(147, 197, 253, 0.1) !important;
+  color: var(--color-public) !important;
+  border: 1px solid rgba(147, 197, 253, 0.25) !important;
+}
+.status-inactive {
+  background: rgba(203, 213, 225, 0.1) !important;
+  color: var(--color-inactive) !important;
+  border: 1px solid rgba(203, 213, 225, 0.25) !important;
+}
+
+.top-badge {
+  background: rgba(251, 191, 36, 0.12);
+  color: hsl(45, 100%, 65%);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  padding: 2px 4px;
+  font-size: 0.8rem;
+}
+
+.hiring-badge {
+  background: rgba(99, 102, 241, 0.12);
+  color: hsl(245, 100%, 75%);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  padding: 2px 4px;
+  font-size: 0.8rem;
+}
+
+.ticker-badge {
+  background: rgba(6, 182, 212, 0.12);
+  color: var(--color-public);
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  padding: 2px 4px;
+  font-size: 0.8rem;
 }
 
 /* Load More Button */
@@ -874,7 +944,10 @@ select option {
 .dense-table th.col-name,
 .dense-table td.col-name {
   width: 22%;
-  min-width: 220px;
+  min-width: 200px;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .dense-table th.col-batch,
 .dense-table td.col-batch {
@@ -888,9 +961,9 @@ select option {
 }
 .dense-table th.col-industry,
 .dense-table td.col-industry {
-  width: 15%;
-  min-width: 150px;
-  max-width: 220px;
+  width: 12%;
+  min-width: 110px;
+  max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -928,4 +1001,21 @@ select option {
 .dense-table td.col-country {
   width: 5%;
   min-width: 90px;
+}
+
+/* Custom Tooltip Styling for Instant Hovers */
+.custom-tooltip {
+  position: absolute;
+  z-index: 10000;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }

@@ -125,6 +125,9 @@ async function init() {
     // Event Listeners
     setupEventListeners();
     
+    // Initialize custom tooltip logic
+    initCustomTooltip();
+    
     // Hide Loader
     loadingOverlay.classList.add('hidden');
   } catch (error) {
@@ -525,9 +528,9 @@ function renderCompanies(append = false) {
     else if (c.status === 'Inactive') statusClass = 'status-inactive';
     
     // Extra indicators for name column
-    const topBadge = c.top_company ? '<span class="badge top-badge" title="Top YC Company">🏆</span>' : '';
-    const hiringBadge = c.isHiring ? '<span class="badge hiring-badge" title="Actively Hiring">💼</span>' : '';
-    const tickerBadge = c.ticker && c.ticker !== 'N/A' ? `<span class="badge ticker-badge" title="Stock symbol">${c.ticker}</span>` : '';
+    const topBadge = c.top_company ? '<span class="badge top-badge" data-tooltip="Top YC Company">🏆</span>' : '';
+    const hiringBadge = c.isHiring ? '<span class="badge hiring-badge" data-tooltip="Actively Hiring">💼</span>' : '';
+    const tickerBadge = c.ticker && c.ticker !== 'N/A' ? `<span class="badge ticker-badge" data-tooltip="Public Stock Ticker: ${c.ticker}">📈</span>` : '';
     
     // Normalize country
     const countryVal = getCountryFromLocation(c.all_locations) || 'Remote';
@@ -541,7 +544,7 @@ function renderCompanies(append = false) {
       <td class="col-name">
         <div class="col-name-cell">
           <img class="table-logo" src="${c.small_logo_thumb_url || ''}" alt="${c.name} logo" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%2327272a%22/><text x=%2250%25%22 y=%2250%25%22 font-family=%22Inter, sans-serif%22 font-weight=%22800%22 font-size=%2220%22 fill=%22%23a1a1aa%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22>?</text></svg>'">
-          <span class="col-name-text">${c.name}</span>
+          <span class="col-name-text" data-tooltip="${c.name}">${c.name}</span>
           <div class="table-badge-row">
             ${topBadge}
             ${hiringBadge}
@@ -551,7 +554,7 @@ function renderCompanies(append = false) {
       </td>
       <td class="col-batch">${c.batch || 'Stealth'}</td>
       <td class="col-status"><span class="badge status-badge ${statusClass}">${c.status || 'Active'}</span></td>
-      <td class="col-industry dimmed" title="${c.industry || 'Unspecified'}">${c.industry || 'Unspecified'}</td>
+      <td class="col-industry dimmed" data-tooltip="${c.industry || 'Unspecified'}">${c.industry || 'Unspecified'}</td>
       <td class="col-yc-deal highlight">${ycDeal}</td>
       <td class="col-extra-capital dimmed">${extraCapital}</td>
       <td class="col-exit-value ${exitVal !== 'Undisclosed' ? 'success' : 'dimmed'}">${exitVal}</td>
@@ -855,4 +858,58 @@ function renderCharts(data) {
       }
     });
   }
+}
+
+// Global Custom Tooltip System for instant hovers
+function initCustomTooltip() {
+  const tooltip = document.createElement('div');
+  tooltip.id = 'app-custom-tooltip';
+  tooltip.className = 'custom-tooltip';
+  tooltip.style.display = 'none';
+  document.body.appendChild(tooltip);
+
+  document.addEventListener('mouseover', (e) => {
+    const target = e.target.closest('[data-tooltip]');
+    if (!target) return;
+
+    const text = target.getAttribute('data-tooltip');
+    if (!text) return;
+
+    // Check if it's a badge (we always show tooltips for badges)
+    // or if the text is truncated (scrollWidth > clientWidth)
+    const isBadge = target.classList.contains('badge');
+    const isTruncated = target.scrollWidth > target.clientWidth;
+
+    if (isBadge || isTruncated) {
+      tooltip.textContent = text;
+      tooltip.style.display = 'block';
+    }
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (tooltip.style.display === 'block') {
+      const offset = 12;
+      let left = e.pageX + offset;
+      let top = e.pageY + offset;
+
+      // Adjust to prevent tooltip going off the screen edge
+      const tooltipRect = tooltip.getBoundingClientRect();
+      if (left + tooltipRect.width > window.innerWidth) {
+        left = e.pageX - tooltipRect.width - offset;
+      }
+      if (top + tooltipRect.height > window.pageYOffset + window.innerHeight) {
+        top = e.pageY - tooltipRect.height - offset;
+      }
+
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = top + 'px';
+    }
+  });
+
+  document.addEventListener('mouseout', (e) => {
+    const target = e.target.closest('[data-tooltip]');
+    if (target) {
+      tooltip.style.display = 'none';
+    }
+  });
 }
