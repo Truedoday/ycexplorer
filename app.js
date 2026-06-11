@@ -34,6 +34,7 @@ let batchMultiselect = null;
 let statusMultiselect = null;
 let ycDealMultiselect = null;
 let disclosedFundingMultiselect = null;
+let tagsMultiselect = null;
 
 // Modal Elements
 const companyDialog = document.getElementById('companyDialog');
@@ -122,6 +123,7 @@ async function init() {
     statusMultiselect = initMultiselect('statusMultiselect', 'All Statuses', applyFiltersAndSearch);
     ycDealMultiselect = initMultiselect('ycDealMultiselect', 'Any YC Deal', applyFiltersAndSearch);
     disclosedFundingMultiselect = initMultiselect('disclosedFundingMultiselect', 'All Startups', applyFiltersAndSearch);
+    tagsMultiselect = initMultiselect('tagsMultiselect', 'All Tags', applyFiltersAndSearch);
 
     // Initialize Filters
     populateFilterSelects(allCompanies);
@@ -424,6 +426,16 @@ function populateFilterSelects(data) {
   });
   const sortedCountries = [...countries].sort();
   countryMultiselect.setOptions(sortedCountries);
+
+  // Tags
+  const tagsSet = new Set();
+  data.forEach(c => {
+    if (c.tags) {
+      c.tags.forEach(t => tagsSet.add(t));
+    }
+  });
+  const sortedTags = [...tagsSet].sort();
+  tagsMultiselect.setOptions(sortedTags);
 }
 
 // Filtering and Searching
@@ -436,6 +448,7 @@ function applyFiltersAndSearch() {
   const selectedStatuses = statusMultiselect ? statusMultiselect.getSelectedValues() : [];
   const selectedDeals = ycDealMultiselect ? ycDealMultiselect.getSelectedValues().map(Number) : [];
   const selectedFunding = disclosedFundingMultiselect ? disclosedFundingMultiselect.getSelectedValues() : [];
+  const selectedTags = tagsMultiselect ? tagsMultiselect.getSelectedValues() : [];
   const isTop = topCompanyCheckbox.checked;
   const isHiring = hiringCheckbox.checked;
 
@@ -507,6 +520,13 @@ function applyFiltersAndSearch() {
       if (!matchesSize) return false;
     }
 
+    // 6.5. Tags matching (any of the selected tags)
+    if (selectedTags.length > 0) {
+      const companyTags = c.tags || [];
+      const hasMatchingTag = companyTags.some(t => selectedTags.includes(t));
+      if (!hasMatchingTag) return false;
+    }
+
     // 7. Checkboxes
     if (isTop && c.top_company !== true) return false;
     if (isHiring && c.isHiring !== true) return false;
@@ -532,6 +552,7 @@ function resetFilters() {
   if (statusMultiselect) statusMultiselect.reset();
   if (ycDealMultiselect) ycDealMultiselect.reset();
   if (disclosedFundingMultiselect) disclosedFundingMultiselect.reset();
+  if (tagsMultiselect) tagsMultiselect.reset();
   
   topCompanyCheckbox.checked = false;
   hiringCheckbox.checked = false;
