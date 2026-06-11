@@ -660,10 +660,22 @@ function renderCharts(data) {
       industryCounts[c.industry] = (industryCounts[c.industry] || 0) + 1;
     }
   });
+  const industryShortNames = {
+    'B2B': 'B2B',
+    'Consumer': 'Cons',
+    'Healthcare': 'Hlth',
+    'Fintech': 'Fin',
+    'Industrials': 'Indus',
+    'Real Estate and Construction': 'RE',
+    'Education': 'Edu',
+    'Government': 'Gov',
+    'Unspecified': 'Unsp'
+  };
+
   const sortedIndustries = Object.entries(industryCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
-  // Shorten labels to max 12 chars so bars and ticks match status chart proportions
-  const indLabels = sortedIndustries.map(x => x[0].length > 12 ? x[0].slice(0, 11) + '…' : x[0]);
-  const indFullLabels = sortedIndustries.map(x => x[0]); // full name for tooltip
+  // Shorten labels to max 5 chars, keep full names for tooltips
+  const indLabelsFull = sortedIndustries.map(x => x[0]);
+  const indLabels = sortedIndustries.map(x => industryShortNames[x[0]] || x[0].slice(0, 5));
   const indValues = sortedIndustries.map(x => x[1]);
 
   const indCtx = document.getElementById('industryChart').getContext('2d');
@@ -697,7 +709,10 @@ function renderCharts(data) {
           borderWidth: 1,
           padding: 10,
           callbacks: {
-            title: (items) => indFullLabels[items[0].dataIndex]
+            title: function(tooltipItems) {
+              const idx = tooltipItems[0].dataIndex;
+              return indLabelsFull[idx] || tooltipItems[0].label;
+            }
           }
         }
       },
@@ -707,8 +722,8 @@ function renderCharts(data) {
           ticks: {
             color: 'hsl(215,12%,65%)',
             font: { family: 'Inter', size: 9 },
-            maxRotation: 0,
-            minRotation: 0
+            maxRotation: 45,
+            minRotation: 45
           }
         },
         y: {
@@ -719,7 +734,7 @@ function renderCharts(data) {
     }
   });
 
-  // 2. Startups Funded per Year (Cohort Volume)
+  // 2. Startups Funded per Year
   const cohortCounts = {};
   for (let y = 2005; y <= 2026; y++) {
     cohortCounts[y] = 0;
@@ -750,8 +765,8 @@ function renderCharts(data) {
           backgroundColor: cohortColor,
           borderColor: 'rgba(194, 65, 12, 0.3)',
           borderWidth: 1,
-          borderRadius: 3,
-          barPercentage: 0.65,
+          borderRadius: 4,
+          barPercentage: 0.7,
           categoryPercentage: 0.8
         }]
       },
@@ -781,11 +796,16 @@ function renderCharts(data) {
         scales: {
           x: {
             grid: { display: false },
-            ticks: { color: 'hsl(215, 12%, 75%)', font: { family: 'Inter', size: 9 } }
+            ticks: {
+              color: 'hsl(215, 12%, 65%)',
+              font: { family: 'Inter', size: 9 },
+              maxRotation: 45,
+              minRotation: 45
+            }
           },
           y: {
             grid: { color: 'rgba(255, 255, 255, 0.04)' },
-            ticks: { color: 'hsl(215, 12%, 75%)', font: { family: 'Inter', size: 9 } }
+            ticks: { color: 'hsl(215, 12%, 65%)', font: { family: 'Inter', size: 9 } }
           }
         }
       }
@@ -799,7 +819,16 @@ function renderCharts(data) {
   });
   // Sort descending by count
   const sortedStatus = Object.entries(statusCounts).sort((a, b) => b[1] - a[1]);
-  const statusLabels = sortedStatus.map(x => x[0]);
+  
+  const statusShortNames = {
+    'Active': 'Act.',
+    'Acquired': 'Acq.',
+    'Inactive': 'Inact',
+    'Public': 'Pub.'
+  };
+
+  const statusLabelsFull = sortedStatus.map(x => x[0]);
+  const statusLabels = sortedStatus.map(x => statusShortNames[x[0]] || x[0]);
   const statusValues = sortedStatus.map(x => x[1]);
   const statusColors = {
     Active:   'rgba(74, 222, 128, 0.75)',
@@ -818,7 +847,7 @@ function renderCharts(data) {
         datasets: [{
           label: 'Companies',
           data: statusValues,
-          backgroundColor: statusLabels.map(l => statusColors[l]),
+          backgroundColor: statusLabelsFull.map(l => statusColors[l]),
           borderColor: 'rgba(255,255,255,0.05)',
           borderWidth: 1,
           borderRadius: 4,
@@ -838,7 +867,13 @@ function renderCharts(data) {
             bodyFont: { family: 'Inter', size: 11 },
             borderColor: 'rgba(255,255,255,0.08)',
             borderWidth: 1,
-            padding: 10
+            padding: 10,
+            callbacks: {
+              title: function(tooltipItems) {
+                const idx = tooltipItems[0].dataIndex;
+                return statusLabelsFull[idx] || tooltipItems[0].label;
+              }
+            }
           }
         },
         scales: {
@@ -847,8 +882,8 @@ function renderCharts(data) {
             ticks: {
               color: 'hsl(215,12%,65%)',
               font: { family: 'Inter', size: 9 },
-              maxRotation: 0,
-              minRotation: 0
+              maxRotation: 45,
+              minRotation: 45
             }
           },
           y: {
