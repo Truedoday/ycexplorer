@@ -296,6 +296,8 @@ body {
 
 /* Horizontal Filters panel styling */
 .filters-top-panel {
+  position: relative;
+  z-index: 100;
   padding: 16px;
   width: 100%;
 }
