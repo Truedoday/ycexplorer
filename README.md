@@ -18,11 +18,12 @@ The underlying data is programmatically aggregated from Y Combinator's public se
 
 * **Interactive Charts**:
   * **Top Industries**: Bar chart distribution of the most popular startup categories.
-  * **Startups Funded per Year**: Chronological cohort volume tracker.
+  * **Startups Funded per Year**: Chronological cohort volume tracker, displaying a default timeline of 23 years.
   * **Operating Status**: Visual breakdown of active, acquired, public, and inactive companies.
 * **Custom Multiselect Dropdowns**: Multi-select filtering for **Country**, **Team Size**, **Industry**, **YC Batch**, **Operating Status**, **Min YC Deal**, **Extra Funding**, and **Tags**.
 * **Flexible Search**: Search instantly by name, one-liner, description, tag, industry, ticker, or investors.
-* **Airtable-Style Sorting**: Click headers on the dense tabular view to sort by name, batch, status, deal size, or country.
+* **Airtable-Style Sorting**: Click column headers on the dense tabular view to sort instantly by name, batch, status, deal size, country, etc. Active sorting persists across page reloads.
+* **State Persistence & Reset**: All active filters, search queries, table sorting, and chart dashboard layouts (additions, deletions, drag-and-drop reordering) are stored in cookies, restoring the workspace automatically on refresh. A 'Reset Charts' button in the results header clears layouts back to defaults.
 * **Comprehensive Modal Views**: Click any company row to open a full details dialog, featuring:
   * Company pitch, long description, and former names.
   * Financial profile (YC deal, extra capital, exit value, investors, ticker).

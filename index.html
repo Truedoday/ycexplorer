@@ -287,43 +287,12 @@
       <section class="results-section" aria-label="Company Listings">
         <div class="results-header">
           <h2 id="resultsCount">Found 0 startups</h2>
-          <div class="sort-selector">
-            <label for="sortSelect">Sort By</label>
-            <select id="sortSelect">
-              <option value="name_asc">Name (A-Z)</option>
-              <option value="name_desc">Name (Z-A)</option>
-              <option value="founded_desc">Founded Year (Newest)</option>
-              <option value="founded_asc">Founded Year (Oldest)</option>
-              <option value="team_desc">Team Size (Largest)</option>
-              <option value="team_asc">Team Size (Smallest)</option>
-              <option value="yc_deal_desc">YC Investment (Highest)</option>
-              <option value="yc_deal_asc">YC Investment (Lowest)</option>
-              <option value="funding_desc">Disclosed Funding (Highest)</option>
-              <option value="exit_desc">Exit Valuation (Highest)</option>
-            </select>
-          </div>
+          <button type="button" id="resetChartsBtn" class="btn btn-secondary reset-charts-header-btn">Reset Charts</button>
         </div>
 
-        <!-- Dashboard Analytics (3-Column Charts Grid) -->
-        <section class="analytics-grid" aria-label="Dataset Visualizations">
-          <div class="chart-container glass-panel">
-            <h2>Top Industries</h2>
-            <div class="chart-wrapper">
-              <canvas id="industryChart"></canvas>
-            </div>
-          </div>
-          <div class="chart-container glass-panel">
-            <h2>Startups Funded per Year</h2>
-            <div class="chart-wrapper">
-              <canvas id="cohortYearChart"></canvas>
-            </div>
-          </div>
-          <div class="chart-container glass-panel">
-            <h2>Operating Status</h2>
-            <div class="chart-wrapper">
-              <canvas id="statusChart"></canvas>
-            </div>
-          </div>
+        <!-- Dashboard Analytics (Dynamic Grid) -->
+        <section class="analytics-grid" id="analyticsGrid" aria-label="Dataset Visualizations">
+          <!-- Injected dynamically in app.js -->
         </section>
 
         <div class="table-container glass-panel" scrollbar-gutter="stable">
@@ -459,6 +428,102 @@
             <h3>Tags</h3>
             <div id="modalTags" class="tags-container">
               <!-- Dynamic tags -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+  
+  <!-- Chart Parameter Configuration Dialog -->
+  <dialog id="chartConfigDialog" class="glass-dialog">
+    <div class="dialog-content chart-config-content">
+      <button id="closeChartConfigBtn" class="close-btn" aria-label="Close modal">&times;</button>
+      
+      <div class="dialog-header chart-config-header">
+        <h2 id="chartConfigHeaderTitle">Edit Chart Settings</h2>
+      </div>
+
+      <div class="chart-config-body">
+        <!-- Error Banner -->
+        <div id="configChartError" class="config-error-banner" style="display: none;">
+          <span class="error-icon">⚠️</span>
+          <span id="configChartErrorText" class="error-text">Feature cannot be plotted</span>
+        </div>
+
+        <!-- Info Banner -->
+        <div id="configChartInfo" class="config-info-banner" style="display: none;">
+          <span class="info-icon">ℹ️</span>
+          <span id="configChartInfoText" class="info-text">Field metadata</span>
+        </div>
+
+        <div class="chart-config-form-container">
+          <form id="chartConfigForm" onsubmit="event.preventDefault();">
+            
+            <div class="filter-group">
+              <label for="configChartTitle">Chart Title</label>
+              <div class="search-input-wrapper">
+                <input type="text" id="configChartTitle" placeholder="e.g. Top Industries" required autocomplete="off">
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label for="configChartFeature">Plot Feature</label>
+              <select id="configChartFeature">
+                <!-- Dynamically populated in JS -->
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="configChartPalette">Color Palette</label>
+              <select id="configChartPalette">
+                <option value="gray">Gray</option>
+                <option value="orange">Orange</option>
+                <option value="violet">Violet</option>
+                <option value="green">Green</option>
+                <option value="blue">Blue</option>
+                <option value="red">Red</option>
+                <option value="amber">Amber</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="configChartSortBy">Sort Axis</label>
+              <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                <select id="configChartSortBy" style="flex: 1; margin-bottom: 0;">
+                  <option value="y">Frequency (Y-Axis)</option>
+                  <option value="x">Label / Value (X-Axis)</option>
+                </select>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-dim); cursor: pointer; white-space: nowrap; margin-bottom: 0; text-transform: none; font-weight: normal; letter-spacing: normal;">
+                  <input type="checkbox" id="configChartSortOrder" checked>
+                  Descending
+                </label>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label for="configChartMaxBars">Maximum Bars</label>
+              <div class="search-input-wrapper">
+                <input type="number" id="configChartMaxBars" min="1" max="100" value="10" required>
+              </div>
+            </div>
+
+            <div class="modal-links chart-config-footer">
+              <button type="button" id="cancelChartConfigBtn" class="btn btn-secondary">Cancel</button>
+              <button type="button" id="saveChartConfigBtn" class="btn btn-primary">Apply Changes</button>
+            </div>
+          </form>
+
+          <!-- Live Preview Section -->
+          <div class="chart-preview-section">
+            <h3>Live Preview</h3>
+            <div class="chart-container glass-panel preview-card">
+              <div class="chart-header" style="margin-bottom: 4px;">
+                <h3 class="chart-card-title" id="previewChartTitle">Chart Preview</h3>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="previewChartCanvas"></canvas>
+              </div>
             </div>
           </div>
         </div>

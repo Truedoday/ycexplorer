@@ -254,37 +254,223 @@ body {
 .analytics-grid {
   order: 2;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 16px;
   width: 100%;
   box-sizing: border-box;
 }
-@media (max-width: 900px) {
-  .analytics-grid {
-    grid-template-columns: 1fr;
-  }
-}
 .chart-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   min-width: 0;
+  aspect-ratio: 16 / 9;
+  box-sizing: border-box;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s, box-shadow 0.2s;
 }
-.chart-container h2 {
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: -0.2px;
-  border-left: 3px solid var(--primary);
-  padding-left: 10px;
-  color: var(--text-main);
+.chart-container[draggable="true"] {
+  cursor: grab;
+}
+.chart-container[draggable="true"]:active {
+  cursor: grabbing;
+}
+.chart-container.dragging {
+  opacity: 0.4;
+  border: 2px dashed var(--primary) !important;
+}
+.chart-container.drag-over {
+  border: 2px solid var(--primary) !important;
+  transform: scale(0.98);
+  box-shadow: 0 0 20px rgba(194, 65, 12, 0.25) !important;
 }
 .chart-wrapper {
   position: relative;
   width: 100%;
-  height: 130px;
+  flex: 1;
+  min-height: 0;
 }
-.chart-wrapper.pie {
-  height: 130px;
+.chart-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  text-align: center;
+  padding: 16px;
+  background: rgba(239, 68, 68, 0.03);
+  border-radius: 8px;
+  border: 1px dashed rgba(239, 68, 68, 0.2);
+}
+.chart-error-state .error-icon {
+  font-size: 1.6rem;
+}
+.chart-error-state .error-message {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Chart Header and Editable Title */
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+}
+.chart-card-title {
+  font-family: var(--font-family);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  border-left: 3px solid var(--primary);
+  padding: 2px 0 2px 10px;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-grow: 1;
+}
+.chart-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.chart-edit-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+.chart-edit-btn:hover {
+  color: var(--primary);
+  transform: scale(1.1);
+}
+.chart-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+.chart-close-btn:hover {
+  color: #ef4444;
+  transform: scale(1.1);
+}
+
+/* Chart Config Dialog Specific Styling */
+.chart-config-content {
+  max-width: 780px;
+  width: 100%;
+}
+.chart-config-header {
+  border-bottom: 1px solid var(--border-glass);
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+}
+.chart-config-header h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text-main);
+}
+.chart-config-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+.chart-config-body form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+.chart-config-body .filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.chart-config-body .filter-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.chart-config-footer {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-glass);
+}
+.chart-config-footer .btn {
+  flex: 1;
+}
+
+/* Add Chart Placeholder Card */
+.add-chart-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.01) !important;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.add-chart-placeholder:hover {
+  border-color: rgba(255, 102, 0, 0.3);
+  background: rgba(255, 102, 0, 0.02) !important;
+}
+.add-chart-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: var(--transition);
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+}
+.add-chart-placeholder:hover .add-chart-btn {
+  color: var(--primary);
+}
+.add-chart-btn .plus-icon {
+  font-size: 2.5rem;
+  font-weight: 200;
+  line-height: 1;
+}
+.add-chart-btn .add-text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.reset-charts-header-btn {
+  padding: 8px 14px;
+  font-size: 0.85rem;
 }
 
 /* Main Workspace */
@@ -1140,4 +1326,76 @@ select option {
   font-weight: 500;
   pointer-events: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Chart Config Modal Dynamic Layout & Preview */
+.chart-config-form-container {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 24px;
+  width: 100%;
+  margin-top: 10px;
+}
+@media (max-width: 768px) {
+  .chart-config-form-container {
+    grid-template-columns: 1fr;
+  }
+}
+.chart-preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chart-preview-section h3 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+.chart-preview-section .preview-card {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+.config-error-banner {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #fca5a5;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  animation: modalScaleIn 0.2s ease forwards;
+}
+.config-error-banner .error-icon {
+  font-size: 1.1rem;
+}
+.config-error-banner .error-text {
+  font-weight: 500;
+}
+
+.config-info-banner {
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #bae6fd;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  line-height: 1.4;
+  animation: modalScaleIn 0.2s ease forwards;
+}
+.config-info-banner .info-icon {
+  font-size: 1.1rem;
+}
+.config-info-banner .info-text {
+  font-weight: 500;
 }

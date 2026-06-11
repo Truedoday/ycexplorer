@@ -4,17 +4,51 @@ let filteredCompanies = [];
 let currentPage = 1;
 const pageSize = 48; // Divisible by 2, 3, and 4 for responsive grids
 
-// Chart Instances
-let industryChartInstance = null;
-let cohortChartInstance = null;
-let statusChartInstance = null;
+let currentSortCol = 'name';
+let sortAscending = true;
+
+// Dynamic Chart Configurations and Instances
+const DEFAULT_CHARTS = [
+  {
+    id: 'industry',
+    feature: 'industry',
+    title: 'Top Industries',
+    colorScheme: 'gray',
+    maxBars: 10,
+    sortBy: 'y',
+    sortDescending: true,
+    instance: null
+  },
+  {
+    id: 'cohort',
+    feature: 'founded_year',
+    title: 'Startups Funded per Year',
+    colorScheme: 'orange',
+    maxBars: 23, // Capped at 23 bars by default
+    sortBy: 'x',
+    sortDescending: false,
+    instance: null
+  },
+  {
+    id: 'status',
+    feature: 'status',
+    title: 'Operating Status',
+    colorScheme: 'violet',
+    maxBars: 10,
+    sortBy: 'y',
+    sortDescending: true,
+    instance: null
+  }
+];
+
+let activeCharts = JSON.parse(JSON.stringify(DEFAULT_CHARTS));
 
 // DOM Elements
 const loadingOverlay = document.getElementById('loadingOverlay');
 const companyTableBody = document.getElementById('companyTableBody');
 const resultsCount = document.getElementById('resultsCount');
 const loadMoreBtn = document.getElementById('loadMoreBtn');
-const sortSelect = document.getElementById('sortSelect');
+const resetChartsBtn = document.getElementById('resetChartsBtn');
 
 // Filters
 const searchInput = document.getElementById('searchInput');
@@ -68,6 +102,20 @@ const modalStage = document.getElementById('modalStage');
 const modalLocations = document.getElementById('modalLocations');
 const modalTags = document.getElementById('modalTags');
 
+// Chart Config Modal Elements & State
+let editingChartId = null;
+let previewChartInstance = null;
+const chartConfigDialog = document.getElementById('chartConfigDialog');
+const closeChartConfigBtn = document.getElementById('closeChartConfigBtn');
+const cancelChartConfigBtn = document.getElementById('cancelChartConfigBtn');
+const saveChartConfigBtn = document.getElementById('saveChartConfigBtn');
+const configChartTitle = document.getElementById('configChartTitle');
+const configChartFeature = document.getElementById('configChartFeature');
+const configChartPalette = document.getElementById('configChartPalette');
+const configChartMaxBars = document.getElementById('configChartMaxBars');
+const configChartSortBy = document.getElementById('configChartSortBy');
+const configChartSortOrder = document.getElementById('configChartSortOrder');
+
 // Helper to format currency values cleanly (e.g. 500000 -> $500K, 1500000000 -> $1.5B)
 function formatCurrency(val) {
   if (val === undefined || val === null || val === '') return 'Undisclosed';
@@ -102,6 +150,112 @@ function getCountryFromLocation(loc) {
   return '';
 }
 
+// Cookie Persistence Helpers
+function setCookie(name, value, days = 365) {
+  const d = new Date();
+  d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+  const expires = "expires=" + d.toUTCString();
+  document.cookie = name + "=" + encodeURIComponent(JSON.stringify(value)) + ";" + expires + ";path=/;SameSite=Strict";
+}
+
+function getCookie(name) {
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) {
+      try {
+        return JSON.parse(decodeURIComponent(c.substring(nameEQ.length, c.length)));
+      } catch (e) {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+function deleteCookie(name) {
+  document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;SameSite=Strict";
+}
+
+// Filter State Persistence
+function saveFiltersToCookie() {
+  const filtersState = {
+    search: searchInput.value,
+    foundedMin: foundedMinSelect.value,
+    foundedMax: foundedMaxSelect.value,
+    country: countryMultiselect ? countryMultiselect.getSelectedValues() : [],
+    teamSize: teamSizeMultiselect ? teamSizeMultiselect.getSelectedValues() : [],
+    industry: industryMultiselect ? industryMultiselect.getSelectedValues() : [],
+    batch: batchMultiselect ? batchMultiselect.getSelectedValues() : [],
+    status: statusMultiselect ? statusMultiselect.getSelectedValues() : [],
+    ycDeal: ycDealMultiselect ? ycDealMultiselect.getSelectedValues() : [],
+    disclosedFunding: disclosedFundingMultiselect ? disclosedFundingMultiselect.getSelectedValues() : [],
+    tags: tagsMultiselect ? tagsMultiselect.getSelectedValues() : [],
+    topCompany: topCompanyCheckbox.checked,
+    hiring: hiringCheckbox.checked,
+    currentSortCol: currentSortCol,
+    sortAscending: sortAscending
+  };
+  setCookie('yc_explorer_filters', filtersState);
+}
+
+function loadFiltersFromCookie() {
+  const filtersState = getCookie('yc_explorer_filters');
+  if (!filtersState) return;
+
+  if (filtersState.search !== undefined) searchInput.value = filtersState.search;
+  if (filtersState.foundedMin !== undefined) foundedMinSelect.value = filtersState.foundedMin;
+  if (filtersState.foundedMax !== undefined) foundedMaxSelect.value = filtersState.foundedMax;
+  
+  if (countryMultiselect && filtersState.country) countryMultiselect.setSelectedValues(filtersState.country);
+  if (teamSizeMultiselect && filtersState.teamSize) teamSizeMultiselect.setSelectedValues(filtersState.teamSize);
+  if (industryMultiselect && filtersState.industry) industryMultiselect.setSelectedValues(filtersState.industry);
+  if (batchMultiselect && filtersState.batch) batchMultiselect.setSelectedValues(filtersState.batch);
+  if (statusMultiselect && filtersState.status) statusMultiselect.setSelectedValues(filtersState.status);
+  if (ycDealMultiselect && filtersState.ycDeal) ycDealMultiselect.setSelectedValues(filtersState.ycDeal);
+  if (disclosedFundingMultiselect && filtersState.disclosedFunding) disclosedFundingMultiselect.setSelectedValues(filtersState.disclosedFunding);
+  if (tagsMultiselect && filtersState.tags) tagsMultiselect.setSelectedValues(filtersState.tags);
+  
+  if (filtersState.topCompany !== undefined) topCompanyCheckbox.checked = filtersState.topCompany;
+  if (filtersState.hiring !== undefined) hiringCheckbox.checked = filtersState.hiring;
+  
+  if (filtersState.currentSortCol !== undefined) currentSortCol = filtersState.currentSortCol;
+  if (filtersState.sortAscending !== undefined) sortAscending = filtersState.sortAscending;
+
+  // Restore active sorting header class
+  document.querySelectorAll('.dense-table th').forEach(th => th.classList.remove('active-sort'));
+  if (currentSortCol) {
+    const activeTh = document.querySelector(`.dense-table th[data-sort="${currentSortCol}"]`);
+    if (activeTh) activeTh.classList.add('active-sort');
+  }
+}
+
+// Chart Layout State Persistence
+function saveChartsToCookie() {
+  const chartsState = activeCharts.map(c => ({
+    id: c.id,
+    feature: c.feature,
+    title: c.title,
+    colorScheme: c.colorScheme,
+    maxBars: c.maxBars,
+    sortBy: c.sortBy,
+    sortDescending: c.sortDescending
+  }));
+  setCookie('yc_explorer_charts', chartsState);
+}
+
+function loadChartsFromCookie() {
+  const chartsState = getCookie('yc_explorer_charts');
+  if (chartsState && Array.isArray(chartsState)) {
+    activeCharts = chartsState.map(c => ({
+      ...c,
+      instance: null
+    }));
+  }
+}
+
 // Init App
 document.addEventListener('DOMContentLoaded', init);
 
@@ -127,6 +281,14 @@ async function init() {
 
     // Initialize Filters
     populateFilterSelects(allCompanies);
+    populateFeatureSelect();
+    
+    // Restore states from cookies
+    loadFiltersFromCookie();
+    loadChartsFromCookie();
+    
+    // Initialize dynamic charts grid structure
+    initChartsGrid();
     
     // Set initial listings
     filteredCompanies = [...allCompanies];
@@ -173,13 +335,14 @@ function setupEventListeners() {
     document.querySelectorAll('.custom-multiselect').forEach(m => m.classList.remove('open'));
   });
   
-  sortSelect.addEventListener('change', () => {
-    sortCompanies(filteredCompanies, sortSelect.value);
-    currentPage = 1;
-    renderCompanies(false);
-    
-    // Clear active header sort styling if dropdown is used
-    document.querySelectorAll('.dense-table th').forEach(h => h.classList.remove('active-sort'));
+  resetChartsBtn.addEventListener('click', () => {
+    // Clear cookies for charts
+    deleteCookie('yc_explorer_charts');
+    // Restore default activeCharts
+    activeCharts = JSON.parse(JSON.stringify(DEFAULT_CHARTS));
+    // Re-initialize and render
+    initChartsGrid();
+    applyFiltersAndSearch();
   });
   
   resetFiltersBtn.addEventListener('click', resetFilters);
@@ -200,10 +363,103 @@ function setupEventListeners() {
     }
   });
 
+  // Chart Config Dialog listeners
+  closeChartConfigBtn.addEventListener('click', () => chartConfigDialog.close());
+  cancelChartConfigBtn.addEventListener('click', () => chartConfigDialog.close());
+  
+  chartConfigDialog.addEventListener('click', (e) => {
+    const rect = chartConfigDialog.getBoundingClientRect();
+    const isInDialog = (rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
+      rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+    if (!isInDialog) {
+      chartConfigDialog.close();
+    }
+  });
+
+  // Keep track of change events to update the Live Preview Chart
+  configChartTitle.addEventListener('input', updatePreviewChart);
+  configChartPalette.addEventListener('change', updatePreviewChart);
+  configChartMaxBars.addEventListener('input', updatePreviewChart);
+  configChartSortBy.addEventListener('change', updatePreviewChart);
+  configChartSortOrder.addEventListener('change', updatePreviewChart);
+
+  // Automatically update the chart title to match the selected feature's default title
+  configChartFeature.addEventListener('change', () => {
+    const featureTitles = {
+      industry: 'Top Industries',
+      founded_year: 'Startups Funded per Year',
+      status: 'Operating Status',
+      batch: 'YC Batch',
+      batch_year: 'YC Batch (Year)',
+      team_size: 'Team Size Bracket',
+      all_locations: 'Top Countries'
+    };
+    
+    const mapped = featureTitles[configChartFeature.value];
+    if (mapped) {
+      configChartTitle.value = mapped;
+    } else if (configChartFeature.selectedIndex !== -1) {
+      configChartTitle.value = configChartFeature.options[configChartFeature.selectedIndex].text;
+    } else {
+      configChartTitle.value = 'New Chart';
+    }
+
+    if (configChartFeature.value.includes('year')) {
+      configChartMaxBars.value = 23;
+    } else {
+      configChartMaxBars.value = 10;
+    }
+
+    updatePreviewChart();
+  });
+
+  // Create or Edit Config action (distinct behaviors)
+  saveChartConfigBtn.addEventListener('click', () => {
+    const titleVal = configChartTitle.value.trim() || 'New Chart';
+    const featureVal = configChartFeature.value;
+    const paletteVal = configChartPalette.value;
+    const maxBarsVal = parseInt(configChartMaxBars.value, 10) || 10;
+    const sortByVal = configChartSortBy.value;
+    const sortDescendingVal = configChartSortOrder.checked;
+
+    if (editingChartId === null) {
+      // Create mode
+      const newId = 'chart-' + Date.now();
+      const newChart = {
+        id: newId,
+        title: titleVal,
+        feature: featureVal,
+        colorScheme: paletteVal,
+        maxBars: maxBarsVal,
+        sortBy: sortByVal,
+        sortDescending: sortDescendingVal,
+        instance: null
+      };
+      activeCharts.push(newChart);
+      initChartsGrid();
+      saveChartsToCookie();
+      applyFiltersAndSearch();
+    } else {
+      // Edit mode
+      const chart = activeCharts.find(c => c.id === editingChartId);
+      if (chart) {
+        chart.title = titleVal;
+        chart.feature = featureVal;
+        chart.colorScheme = paletteVal;
+        chart.maxBars = maxBarsVal;
+        chart.sortBy = sortByVal;
+        chart.sortDescending = sortDescendingVal;
+        
+        initChartsGrid();
+        saveChartsToCookie();
+        applyFiltersAndSearch();
+      }
+    }
+    chartConfigDialog.close();
+  });
+
   // Table Column Header Click Sorting
   const tableHeaders = document.querySelectorAll('.dense-table th');
-  let currentSortCol = 'name';
-  let sortAscending = true;
   
   tableHeaders.forEach(th => {
     th.addEventListener('click', () => {
@@ -224,11 +480,9 @@ function setupEventListeners() {
       // Sort
       sortTableByColumn(col, sortAscending);
       
-      // Clear dropdown selector sync to avoid confusing UI states
-      sortSelect.value = '';
-      
       currentPage = 1;
       renderCompanies(false);
+      saveFiltersToCookie();
     });
   });
 }
@@ -353,6 +607,13 @@ function initMultiselect(id, defaultLabel, onChange) {
     updateLabel: updateTriggerLabel,
     getSelectedValues: () => {
       return Array.from(panel.querySelectorAll('input[type="checkbox"]:checked')).map(el => el.value);
+    },
+    setSelectedValues: (values) => {
+      if (!values || !Array.isArray(values)) return;
+      panel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.checked = values.includes(cb.value);
+      });
+      updateTriggerLabel();
     },
     reset: () => {
       panel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
@@ -531,10 +792,11 @@ function applyFiltersAndSearch() {
     return true;
   });
   
-  sortCompanies(filteredCompanies, sortSelect.value);
+  sortTableByColumn(currentSortCol, sortAscending);
   currentPage = 1;
   renderCompanies(false);
   renderCharts(filteredCompanies);
+  saveFiltersToCookie();
 }
 
 // Reset Filters
@@ -554,7 +816,8 @@ function resetFilters() {
   
   topCompanyCheckbox.checked = false;
   hiringCheckbox.checked = false;
-  sortSelect.value = 'name_asc';
+  currentSortCol = 'name';
+  sortAscending = true;
   
   // Clear table header sort styling and set default
   document.querySelectorAll('.dense-table th').forEach(th => th.classList.remove('active-sort'));
@@ -768,208 +1031,253 @@ function openCompanyModal(c) {
   }
 }
 
-// Render Charts
-function renderCharts(data) {
-  if (industryChartInstance) industryChartInstance.destroy();
-  if (cohortChartInstance) cohortChartInstance.destroy();
-  if (statusChartInstance) statusChartInstance.destroy();
-
-  // 1. Industry Distribution (Top 10)
-  const industryCounts = {};
-  data.forEach(c => {
-    if (c.industry) {
-      industryCounts[c.industry] = (industryCounts[c.industry] || 0) + 1;
-    }
-  });
-  const industryShortNames = {
-    'B2B': 'B2B',
-    'Consumer': 'Consumer',
-    'Healthcare': 'Health',
-    'Fintech': 'Fintech',
-    'Industrials': 'Industrls',
-    'Real Estate and Construction': 'Real Est.',
-    'Education': 'Education',
-    'Government': 'Govt.',
-    'Unspecified': 'Unspec.'
+// Helpers for dynamic chart color generation (single solid base colors)
+function getColorsForChart(labels, fullLabels, colorScheme) {
+  const palettes = {
+    gray: 'rgba(148, 163, 184, 0.85)',
+    orange: 'rgba(234, 88, 12, 0.85)',
+    violet: 'rgba(139, 92, 246, 0.85)',
+    green: 'rgba(16, 185, 129, 0.85)',
+    blue: 'rgba(14, 165, 233, 0.85)',
+    red: 'rgba(244, 63, 94, 0.85)',
+    amber: 'rgba(245, 158, 11, 0.85)'
   };
-
-  const sortedIndustries = Object.entries(industryCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
-  // Shorten labels to max 9 chars, keep full names for tooltips
-  const indLabelsFull = sortedIndustries.map(x => x[0]);
-  const indLabels = sortedIndustries.map(x => industryShortNames[x[0]] || x[0].slice(0, 9));
-  const indValues = sortedIndustries.map(x => x[1]);
-
-  const indCtx = document.getElementById('industryChart').getContext('2d');
-
-  industryChartInstance = new Chart(indCtx, {
-    type: 'bar',
-    data: {
-      labels: indLabels,
-      datasets: [{
-        label: 'Startups',
-        data: indValues,
-        backgroundColor: 'rgba(148, 163, 184, 0.7)',
-        borderColor: 'rgba(148, 163, 184, 0.2)',
-        borderWidth: 1,
-        borderRadius: 4,
-        barPercentage: 0.7,
-        categoryPercentage: 0.8
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: 'rgba(15, 23, 42, 0.95)',
-          titleFont: { family: 'Inter', size: 12, weight: 'bold' },
-          bodyFont: { family: 'Inter', size: 11 },
-          borderColor: 'rgba(255,255,255,0.08)',
-          borderWidth: 1,
-          padding: 10,
-          callbacks: {
-            title: function(tooltipItems) {
-              const idx = tooltipItems[0].dataIndex;
-              return indLabelsFull[idx] || tooltipItems[0].label;
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          grid: { display: false },
-          ticks: {
-            color: 'hsl(215,12%,65%)',
-            font: { family: 'Inter', size: 9 },
-            maxRotation: 45,
-            minRotation: 45
-          }
-        },
-        y: {
-          grid: { color: 'rgba(255,255,255,0.04)' },
-          ticks: { color: 'hsl(215,12%,65%)', font: { family: 'Inter', size: 9 } }
-        }
-      }
-    }
-  });
-
-  // 2. Startups Funded per Year
-  const cohortCounts = {};
-  for (let y = 2005; y <= 2026; y++) {
-    cohortCounts[y] = 0;
-  }
-
-  data.forEach(c => {
-    const p = parseBatch(c.batch);
-    if (p.year >= 2005 && p.year <= 2026) {
-      cohortCounts[p.year]++;
-    }
-  });
-
-  const cohortLabels = Object.keys(cohortCounts);
-  const cohortValues = Object.values(cohortCounts);
-
-  const cohortCanvas = document.getElementById('cohortYearChart');
-  if (cohortCanvas) {
-    const cohortCtx = cohortCanvas.getContext('2d');
-    const cohortColor = 'rgba(194, 65, 12, 0.7)'; // YC Terracotta/Rust (Desaturated Orange Accent)
-
-    cohortChartInstance = new Chart(cohortCtx, {
-      type: 'bar',
-      data: {
-        labels: cohortLabels,
-        datasets: [{
-          label: 'Startups Funded',
-          data: cohortValues,
-          backgroundColor: cohortColor,
-          borderColor: 'rgba(194, 65, 12, 0.3)',
-          borderWidth: 1,
-          borderRadius: 4,
-          barPercentage: 0.7,
-          categoryPercentage: 0.8
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false,
-          axis: 'x'
-        },
-        hover: {
-          mode: 'index',
-          intersect: false
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
-            titleFont: { family: 'Inter', size: 12, weight: 'bold' },
-            bodyFont: { family: 'Inter', size: 11 },
-            borderColor: 'rgba(194, 65, 12, 0.2)',
-            borderWidth: 1,
-            padding: 10
-          }
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: {
-              color: 'hsl(215, 12%, 65%)',
-              font: { family: 'Inter', size: 9 },
-              maxRotation: 45,
-              minRotation: 45
-            }
-          },
-          y: {
-            grid: { color: 'rgba(255, 255, 255, 0.04)' },
-            ticks: { color: 'hsl(215, 12%, 65%)', font: { family: 'Inter', size: 9 } }
-          }
-        }
-      }
-    });
-  }
-
-  // 3. Operating Status — sorted vertical bar (matches industry chart proportions)
-  const statusCounts = { Active: 0, Acquired: 0, Public: 0, Inactive: 0 };
-  data.forEach(c => {
-    if (c.status in statusCounts) statusCounts[c.status]++;
-  });
-  // Sort descending by count
-  const sortedStatus = Object.entries(statusCounts).sort((a, b) => b[1] - a[1]);
   
-  const statusShortNames = {
-    'Active': 'Act.',
-    'Acquired': 'Acq.',
-    'Inactive': 'Inact',
-    'Public': 'Pub.'
-  };
+  const scheme = colorScheme === 'slate' ? 'gray' : colorScheme;
+  return palettes[scheme] || palettes.gray;
+}
 
-  const statusLabelsFull = sortedStatus.map(x => x[0]);
-  const statusLabels = sortedStatus.map(x => statusShortNames[x[0]] || x[0]);
-  const statusValues = sortedStatus.map(x => x[1]);
-  const statusColors = {
-    Active:   'rgba(74, 222, 128, 0.75)',
-    Acquired: 'rgba(250, 204, 21, 0.75)',
-    Public:   'rgba(96, 165, 250, 0.75)',
-    Inactive: 'rgba(148, 163, 184, 0.65)'
-  };
+// Bin company records into labels, fullLabels, and values for histograms (with dynamic capping and 9-char ellipsis labels)
+function getChartData(companies, feature, colorScheme, maxBars = 10, sortBy = 'y', sortDescending = true) {
+  let labels = [];
+  let fullLabels = [];
+  let values = [];
+  
+  // Detect base type of the field across companies
+  let detectedType = 'string';
+  const sampleCompany = companies.find(c => c[feature] !== undefined && c[feature] !== null);
+  if (sampleCompany) {
+    const val = sampleCompany[feature];
+    if (Array.isArray(val)) {
+      detectedType = 'array';
+    } else if (typeof val === 'number') {
+      detectedType = 'number';
+    } else if (typeof val === 'boolean') {
+      detectedType = 'boolean';
+    }
+  }
 
-  const statusCanvas = document.getElementById('statusChart');
-  if (statusCanvas) {
-    const statusCtx = statusCanvas.getContext('2d');
-    statusChartInstance = new Chart(statusCtx, {
+  let totalUniqueCount = 0;
+  let isCapped = false;
+  const counts = {};
+
+  companies.forEach(c => {
+    let val = c[feature];
+    if (feature === 'country' || feature === 'all_locations') {
+      detectedType = 'string';
+      val = getCountryFromLocation(c.all_locations) || 'Remote';
+    } else if (feature === 'batch_year') {
+      detectedType = 'number';
+      const p = parseBatch(c.batch);
+      val = (p.year >= 2005 && p.year <= 2026) ? p.year : null;
+    } else if (feature === 'team_size') {
+      detectedType = 'string';
+      const size = c.team_size;
+      if (size !== undefined && size !== null && !isNaN(size)) {
+        if (size >= 1 && size <= 10) val = '1-10';
+        else if (size >= 11 && size <= 50) val = '11-50';
+        else if (size >= 51 && size <= 200) val = '51-200';
+        else if (size >= 201 && size <= 500) val = '201-500';
+        else if (size >= 501) val = '500+';
+      } else {
+        val = null;
+      }
+    } else if (feature === 'founded_year') {
+      detectedType = 'number';
+      val = (c.founded_year >= 2005 && c.founded_year <= 2026) ? c.founded_year : null;
+    }
+
+    // Skip empty, null, undefined, or blank values entirely
+    if (val === undefined || val === null || val === '' || String(val).trim() === '') {
+      return;
+    }
+
+    if (Array.isArray(val)) {
+      val.forEach(item => {
+        const itemStr = String(item).trim();
+        if (itemStr !== '') {
+          counts[itemStr] = (counts[itemStr] || 0) + 1;
+        }
+      });
+    } else {
+      const valStr = String(val).trim();
+      if (valStr !== '') {
+        counts[valStr] = (counts[valStr] || 0) + 1;
+      }
+    }
+  });
+
+  // 1. Sort all unique values before capping
+  let sorted = Object.entries(counts);
+  if (sorted.length === 0) {
+    throw new Error(`No plotable data found for feature "${feature}"`);
+  }
+
+  if (sortBy === 'x') {
+    sorted.sort((a, b) => {
+      const valA = a[0];
+      const valB = b[0];
+      // Numeric check for years
+      const numA = Number(valA);
+      const numB = Number(valB);
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return sortDescending ? (numB - numA) : (numA - numB);
+      }
+      return sortDescending 
+        ? valB.localeCompare(valA, undefined, { numeric: true, sensitivity: 'base' })
+        : valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  } else {
+    // Sort by Y-axis (Frequency / Count)
+    sorted.sort((a, b) => sortDescending ? (b[1] - a[1]) : (a[1] - b[1]));
+  }
+  
+  totalUniqueCount = sorted.length;
+  let binned = sorted;
+  let hasOther = false;
+  let otherSum = 0;
+  
+  if (totalUniqueCount > maxBars) {
+    isCapped = true;
+    binned = sorted.slice(0, maxBars);
+    otherSum = sorted.slice(maxBars).reduce((sum, x) => sum + x[1], 0);
+    hasOther = true;
+  }
+
+  // 3. Append 'Other' at the end if capped
+  if (hasOther) {
+    binned.push(['Other', otherSum]);
+  }
+
+  // Capping labels to 9 symbols and an ellipsis (if label is longer than 9 symbols)
+  function formatLabel(label) {
+    if (label === 'Other') return 'Other';
+    const labelStr = String(label);
+    if (labelStr.length > 9) {
+      return labelStr.slice(0, 9) + '...';
+    }
+    return labelStr;
+  }
+
+  fullLabels = binned.map(x => x[0]);
+  labels = binned.map(x => formatLabel(x[0]));
+  values = binned.map(x => x[1]);
+
+  const backgroundColors = getColorsForChart(labels, fullLabels, colorScheme);
+  
+  return {
+    labels,
+    fullLabels,
+    values,
+    backgroundColors,
+    meta: {
+      isCapped,
+      uniqueCount: totalUniqueCount,
+      fieldType: detectedType
+    }
+  };
+}
+
+// Open chart config modal and populate options (Create vs Edit modes)
+function openChartConfigModal(chartId) {
+  const modalHeaderTitle = document.getElementById('chartConfigHeaderTitle');
+  
+  if (chartId === null) {
+    // Create Mode
+    editingChartId = null;
+    if (modalHeaderTitle) modalHeaderTitle.textContent = 'Create New Chart';
+    if (saveChartConfigBtn) saveChartConfigBtn.textContent = 'Create Chart';
+    
+    configChartTitle.value = 'Top Industries';
+    configChartFeature.value = 'industry';
+    configChartPalette.value = 'gray';
+    configChartMaxBars.value = 10;
+    configChartSortBy.value = 'y';
+    configChartSortOrder.checked = true;
+  } else {
+    // Edit Mode
+    const chart = activeCharts.find(c => c.id === chartId);
+    if (!chart) return;
+    
+    editingChartId = chartId;
+    if (modalHeaderTitle) modalHeaderTitle.textContent = 'Edit Chart Settings';
+    if (saveChartConfigBtn) saveChartConfigBtn.textContent = 'Apply Changes';
+    
+    configChartTitle.value = chart.title;
+    configChartFeature.value = chart.feature;
+    configChartPalette.value = chart.colorScheme === 'slate' ? 'gray' : chart.colorScheme;
+    configChartMaxBars.value = chart.maxBars || 10;
+    configChartSortBy.value = chart.sortBy || 'y';
+    configChartSortOrder.checked = chart.sortDescending !== false;
+  }
+  
+  // Update preview immediately
+  updatePreviewChart();
+  
+  chartConfigDialog.showModal();
+}
+
+// Rebuild grid cards and setup Chart instances dynamically (with HTML5 Drag and Drop)
+function initChartsGrid() {
+  const gridContainer = document.getElementById('analyticsGrid');
+  if (!gridContainer) return;
+  
+  // Destroy existing Chart.js instances to avoid memory leaks
+  activeCharts.forEach(c => {
+    if (c.instance) {
+      c.instance.destroy();
+      c.instance = null;
+    }
+  });
+  
+  gridContainer.innerHTML = '';
+  
+  activeCharts.forEach(chart => {
+    const card = document.createElement('div');
+    card.className = 'chart-container glass-panel';
+    card.setAttribute('data-chart-id', chart.id);
+    card.setAttribute('draggable', 'true');
+    
+    card.innerHTML = `
+      <div class="chart-header">
+        <h3 class="chart-card-title" data-chart-id="${chart.id}">${chart.title}</h3>
+        <div class="chart-header-actions">
+          <button class="chart-edit-btn" data-chart-id="${chart.id}" aria-label="Edit Chart Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; display: block;">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+          </button>
+          <button class="chart-close-btn" data-chart-id="${chart.id}" aria-label="Delete Chart">&times;</button>
+        </div>
+      </div>
+
+      <div class="chart-wrapper">
+        <canvas id="canvas-${chart.id}"></canvas>
+      </div>
+    `;
+    
+    gridContainer.appendChild(card);
+    
+    const ctx = document.getElementById(`canvas-${chart.id}`).getContext('2d');
+    chart.instance = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: statusLabels,
+        labels: [],
         datasets: [{
-          label: 'Companies',
-          data: statusValues,
-          backgroundColor: statusLabelsFull.map(l => statusColors[l]),
-          borderColor: 'rgba(255,255,255,0.05)',
+          data: [],
+          backgroundColor: [],
+          borderColor: 'rgba(255,255,255,0.03)',
           borderWidth: 1,
           borderRadius: 4,
           barPercentage: 0.7,
@@ -988,13 +1296,7 @@ function renderCharts(data) {
             bodyFont: { family: 'Inter', size: 11 },
             borderColor: 'rgba(255,255,255,0.08)',
             borderWidth: 1,
-            padding: 10,
-            callbacks: {
-              title: function(tooltipItems) {
-                const idx = tooltipItems[0].dataIndex;
-                return statusLabelsFull[idx] || tooltipItems[0].label;
-              }
-            }
+            padding: 10
           }
         },
         scales: {
@@ -1009,11 +1311,352 @@ function renderCharts(data) {
           },
           y: {
             grid: { color: 'rgba(255,255,255,0.04)' },
-            ticks: { color: 'hsl(215,12%,65%)', font: { family: 'Inter', size: 9 } }
+            ticks: { 
+              color: 'hsl(215,12%,65%)', 
+              font: { family: 'Inter', size: 9 },
+              precision: 0
+            }
           }
         }
       }
     });
+  });
+  
+  // Add "+ Add Chart" card
+  const addCard = document.createElement('div');
+  addCard.className = 'chart-container glass-panel add-chart-placeholder';
+  addCard.innerHTML = `
+    <button class="add-chart-btn" id="addChartBtn" aria-label="Add new chart">
+      <span class="plus-icon">+</span>
+      <span class="add-text">Add Chart</span>
+    </button>
+  `;
+  gridContainer.appendChild(addCard);
+  
+  setupChartGridEventListeners(gridContainer);
+}
+
+// Bind interactive event handlers to the custom chart card controls (including HTML5 drag-and-drop reordering)
+function setupChartGridEventListeners(gridContainer) {
+  const addBtn = gridContainer.querySelector('#addChartBtn');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      openChartConfigModal(null);
+    });
+  }
+
+
+  
+  gridContainer.querySelectorAll('.chart-close-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const chartId = btn.getAttribute('data-chart-id');
+      const idx = activeCharts.findIndex(c => c.id === chartId);
+      if (idx !== -1) {
+        if (activeCharts[idx].instance) {
+          activeCharts[idx].instance.destroy();
+        }
+        activeCharts.splice(idx, 1);
+        initChartsGrid();
+        saveChartsToCookie();
+        applyFiltersAndSearch();
+      }
+    });
+  });
+
+  gridContainer.querySelectorAll('.chart-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const chartId = btn.getAttribute('data-chart-id');
+      openChartConfigModal(chartId);
+    });
+  });
+
+  // Setup HTML5 Drag and Drop reordering on chart-containers
+  const cards = gridContainer.querySelectorAll('.chart-container:not(.add-chart-placeholder)');
+  cards.forEach(card => {
+    card.addEventListener('dragstart', (e) => {
+      const chartId = card.getAttribute('data-chart-id');
+      e.dataTransfer.setData('text/plain', chartId);
+      e.dataTransfer.effectAllowed = 'move';
+      card.classList.add('dragging');
+    });
+
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      gridContainer.querySelectorAll('.chart-container').forEach(c => c.classList.remove('drag-over'));
+    });
+
+    card.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      card.classList.add('drag-over');
+    });
+
+    card.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+    });
+
+    card.addEventListener('dragleave', () => {
+      card.classList.remove('drag-over');
+    });
+
+    card.addEventListener('drop', (e) => {
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      const srcId = e.dataTransfer.getData('text/plain');
+      const targetId = card.getAttribute('data-chart-id');
+      
+      if (srcId && targetId && srcId !== targetId) {
+        const srcIdx = activeCharts.findIndex(c => c.id === srcId);
+        const targetIdx = activeCharts.findIndex(c => c.id === targetId);
+        
+        if (srcIdx !== -1 && targetIdx !== -1) {
+          const [dragged] = activeCharts.splice(srcIdx, 1);
+          activeCharts.splice(targetIdx, 0, dragged);
+          initChartsGrid();
+          saveChartsToCookie();
+          applyFiltersAndSearch();
+        }
+      }
+    });
+  });
+}
+
+// Redraw charts with filtered data smoothly (includes robust error boundaries per card)
+function renderCharts(data) {
+  activeCharts.forEach(chart => {
+    if (!chart.instance) return;
+    
+    const container = document.querySelector(`.chart-container[data-chart-id="${chart.id}"]`);
+    if (!container) return;
+    
+    const wrapper = container.querySelector('.chart-wrapper');
+    const canvas = container.querySelector('canvas');
+    
+    // Clear any previous error states
+    const existingError = container.querySelector('.chart-error-state');
+    if (existingError) {
+      existingError.remove();
+    }
+    if (canvas) {
+      canvas.style.display = 'block';
+    }
+    
+    try {
+      const chartData = getChartData(data, chart.feature, chart.colorScheme, chart.maxBars || 10, chart.sortBy || 'y', chart.sortDescending !== false);
+      
+      if (!chartData.labels || chartData.labels.length === 0) {
+        throw new Error(`No plotable data found for feature "${chart.feature}"`);
+      }
+      
+      chart.instance.data.labels = chartData.labels;
+      chart.instance.data.datasets[0].data = chartData.values;
+      chart.instance.data.datasets[0].backgroundColor = chartData.backgroundColors;
+      chart.instance.data.datasets[0].label = chart.title;
+      
+      chart.instance.options.plugins.tooltip.callbacks.title = function(tooltipItems) {
+        const idx = tooltipItems[0].dataIndex;
+        return chartData.fullLabels[idx] || tooltipItems[0].label;
+      };
+      
+      chart.instance.update();
+    } catch (err) {
+      console.error(`Error rendering chart "${chart.id}":`, err);
+      if (canvas) {
+        canvas.style.display = 'none';
+      }
+      
+      const errDiv = document.createElement('div');
+      errDiv.className = 'chart-error-state';
+      errDiv.innerHTML = `
+        <span class="error-icon">⚠️</span>
+        <div class="error-message">Cannot plot feature: ${err.message}</div>
+      `;
+      if (wrapper) {
+        wrapper.appendChild(errDiv);
+      }
+    }
+  });
+}
+
+// Dynamically discover all attributes in the startup dataset and populate the Plot dropdown
+function populateFeatureSelect() {
+  const select = document.getElementById('configChartFeature');
+  if (!select) return;
+  select.innerHTML = '';
+  
+  const commonFields = [
+    { value: 'industry', text: 'Industry' },
+    { value: 'founded_year', text: 'Founded Year' },
+    { value: 'status', text: 'Operating Status' },
+    { value: 'batch', text: 'YC Batch' },
+    { value: 'batch_year', text: 'YC Batch (Year)' },
+    { value: 'team_size', text: 'Team Size' },
+    { value: 'all_locations', text: 'Country / Location' },
+    { value: 'standard_yc_deal', text: 'YC Seed Check' },
+    { value: 'other_funding_raised', text: 'Disclosed Funding' },
+    { value: 'exit_value', text: 'Exit Valuation' },
+    { value: 'top_company', text: 'Top YC Company Flag' },
+    { value: 'isHiring', text: 'Hiring Flag' },
+    { value: 'ticker', text: 'Stock Ticker' },
+    { value: 'exit_year', text: 'Exit Year' },
+    { value: 'acquired_by', text: 'Acquired By' },
+    { value: 'profit', text: 'Profitability Stage' },
+    { value: 'investors', text: 'Lead Investors' },
+    { value: 'stage', text: 'Growth Stage' }
+  ];
+  
+  const processedKeys = new Set(commonFields.map(f => f.value));
+  const otherKeys = [];
+  
+  if (allCompanies && allCompanies.length > 0) {
+    allCompanies.forEach(c => {
+      Object.keys(c).forEach(k => {
+        if (!processedKeys.has(k) && !['small_logo_thumb_url', 'url', 'website', 'long_description', 'former_names', 'id'].includes(k)) {
+          processedKeys.add(k);
+          const label = k.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+          otherKeys.push({ value: k, text: label });
+        }
+      });
+    });
+  }
+  
+  otherKeys.sort((a, b) => a.text.localeCompare(b.text));
+  const allFields = [...commonFields, ...otherKeys];
+  
+  allFields.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.value;
+    opt.textContent = f.text;
+    select.appendChild(opt);
+  });
+}
+
+// Live Preview rendering inside the configuration dialog (includes dynamic error feedback)
+function updatePreviewChart() {
+  const title = configChartTitle.value.trim() || 'Chart Preview';
+  const feature = configChartFeature.value;
+  const palette = configChartPalette.value;
+  const maxBars = parseInt(configChartMaxBars.value, 10) || 10;
+  const sortBy = configChartSortBy.value;
+  const sortDescending = configChartSortOrder.checked;
+  
+  const previewTitleEl = document.getElementById('previewChartTitle');
+  if (previewTitleEl) {
+    previewTitleEl.textContent = title;
+  }
+  
+  const errorBanner = document.getElementById('configChartError');
+  const errorTextEl = document.getElementById('configChartErrorText');
+  const saveBtn = document.getElementById('saveChartConfigBtn');
+  
+  try {
+    const chartData = getChartData(filteredCompanies, feature, palette, maxBars, sortBy, sortDescending);
+    
+    if (!chartData.labels || chartData.labels.length === 0) {
+      throw new Error(`No plotable data found for feature "${feature}"`);
+    }
+    
+    if (errorBanner) errorBanner.style.display = 'none';
+    if (saveBtn) saveBtn.disabled = false;
+    
+    // Field type & unique values banner
+    const infoBanner = document.getElementById('configChartInfo');
+    const infoTextEl = document.getElementById('configChartInfoText');
+    if (infoBanner && infoTextEl) {
+      const typeMapping = {
+        'string': 'Text',
+        'number': 'Number',
+        'boolean': 'Boolean',
+        'array': 'List/Array'
+      };
+      const friendlyType = typeMapping[chartData.meta.fieldType] || chartData.meta.fieldType;
+      
+      if (chartData.meta.isCapped) {
+        infoBanner.style.display = 'flex';
+        infoTextEl.textContent = `This chart is capped because the field has ${chartData.meta.uniqueCount} unique values (Type: ${friendlyType}). The top ${maxBars} are plotted individually; the remainder is grouped under "Other".`;
+      } else {
+        infoBanner.style.display = 'flex';
+        infoTextEl.textContent = `Field "${feature}" (Type: ${friendlyType}) contains ${chartData.meta.uniqueCount} unique values.`;
+      }
+    }
+    
+    const ctx = document.getElementById('previewChartCanvas').getContext('2d');
+    if (previewChartInstance) {
+      previewChartInstance.data.labels = chartData.labels;
+      previewChartInstance.data.datasets[0].data = chartData.values;
+      previewChartInstance.data.datasets[0].backgroundColor = chartData.backgroundColors;
+      previewChartInstance.data.datasets[0].label = title;
+      previewChartInstance.options.plugins.tooltip.callbacks.title = function(tooltipItems) {
+        const idx = tooltipItems[0].dataIndex;
+        return chartData.fullLabels[idx] || tooltipItems[0].label;
+      };
+      previewChartInstance.update();
+    } else {
+      previewChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: chartData.labels,
+          datasets: [{
+            data: chartData.values,
+            backgroundColor: chartData.backgroundColors,
+            borderColor: 'rgba(255,255,255,0.03)',
+            borderWidth: 1,
+            borderRadius: 4,
+            barPercentage: 0.7,
+            categoryPercentage: 0.8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              titleFont: { family: 'Inter', size: 12, weight: 'bold' },
+              bodyFont: { family: 'Inter', size: 11 },
+              borderColor: 'rgba(255,255,255,0.08)',
+              borderWidth: 1,
+              padding: 10
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: {
+                color: 'hsl(215,12%,65%)',
+                font: { family: 'Inter', size: 9 },
+                maxRotation: 45,
+                minRotation: 45
+              }
+            },
+            y: {
+              grid: { color: 'rgba(255,255,255,0.04)' },
+              ticks: { 
+                color: 'hsl(215,12%,65%)', 
+                font: { family: 'Inter', size: 9 },
+                precision: 0
+              }
+            }
+          }
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Preview error:', err);
+    const infoBanner = document.getElementById('configChartInfo');
+    if (infoBanner) infoBanner.style.display = 'none';
+    
+    if (errorBanner) {
+      errorBanner.style.display = 'flex';
+      errorTextEl.textContent = `Cannot plot feature: ${err.message}`;
+    }
+    if (saveBtn) saveBtn.disabled = true;
+    
+    if (previewChartInstance) {
+      previewChartInstance.destroy();
+      previewChartInstance = null;
+    }
   }
 }
 
