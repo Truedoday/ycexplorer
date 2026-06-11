@@ -1,0 +1,41 @@
+# Environment & secrets
+.env
+.env.*
+*.env
+*.key
+*.pem
+secrets.json
+config.local.js
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Optional: exclude raw/large data files (only min JSON is needed by the app)
+# Uncomment these if you want to keep the repo lean:
+# yc_startups.json
+# yc_startups.csv
