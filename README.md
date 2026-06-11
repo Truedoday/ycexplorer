@@ -1,64 +1,95 @@
-# Y Combinator Startups Dataset
+# YC Startups Explorer
 
-This repository contains a structured dataset of **5,956** Y Combinator-funded companies, compiled on **June 10, 2026**.
+Explore, search, filter, and visualize the full dataset of **5,950+** Y Combinator funded startups in a sleek, interactive financial & temporal dashboard.
 
-The dataset is derived from Y Combinator's official startup directory (retrieved programmatically from their public search index) and structured into both **CSV** (for easy spreadsheet analysis) and **JSON** (for development and API consumption) formats.
+[![YC Startups Explorer Screenshot](./screenshot.png)](https://truedoday.github.io/ycexplorer/)
 
----
-
-## Dataset Files
-
-* **[`yc_startups.json`](./yc_startups.json)**: The complete raw dataset with full nested metadata.
-* **[`yc_startups.csv`](./yc_startups.csv)**: A flattened tabular format. Lists (like tags, former names, industries, and regions) are converted into semicolon-separated strings (`; `) for compatibility with Excel, Google Sheets, Pandas, etc.
-* **[`generate_dataset.py`](./generate_dataset.py)**: The Python script used to fetch, process, and output the data files.
+### 🔗 Live Demo: [truedoday.github.io/ycexplorer](https://truedoday.github.io/ycexplorer/)
 
 ---
 
-## Data Schema (CSV fields)
+## 🚀 Overview
 
-| Column Name | Type | Description |
-| :--- | :--- | :--- |
-| `id` | Integer | Unique YC directory ID of the startup. |
-| `name` | String | Name of the startup. |
-| `slug` | String | URL slug of the startup on YC's directory. |
-| `website` | String | Official website URL of the startup. |
-| `yc_url` | String | URL of the startup's profile page on YC. |
-| `one_liner` | String | A short tagline or description. |
-| `long_description` | String | Full detailed description. |
-| `team_size` | Integer | Estimated/disclosed number of employees. |
-| `batch` | String | YC batch (e.g., `Winter 2012`, `Summer 2023`). |
-| `status` | String | Current operating status (e.g., `Active`, `Acquired`, `Public`, `Inactive`). |
-| `stage` | String | Growth stage (e.g., `Early`, `Growth`). |
-| `industry` | String | Primary high-level industry. |
-| `subindustry` | String | Detailed subindustry taxonomy. |
-| `industries` | String | Semicolon-separated list of all relevant industries. |
-| `regions` | String | Semicolon-separated list of geographical regions. |
-| `all_locations` | String | Location details (cities/countries). |
-| `tags` | String | Semicolon-separated list of tags (e.g. `SaaS`, `AI`, `B2B`). |
-| `top_company` | Boolean | Highlighted as a YC Top Company. |
-| `is_hiring` | Boolean | Startup is actively hiring on the YC Work at a Startup portal. |
-| `nonprofit` | Boolean | Startup is registered as a non-profit. |
-| `former_names` | String | Semicolon-separated list of former company names. |
-| `launched_at` | Integer | Unix timestamp of the YC profile creation. |
-| `small_logo_url` | String | URL of the thumbnail logo image. |
+**YC Startups Explorer** is a high-performance frontend dashboard designed to explore the rich history of Y Combinator cohort companies. It integrates interactive visualizations (via Chart.js), a fast server-less filter engine, detailed modals for startup profiles, and custom multi-select filters.
+
+The underlying data is programmatically aggregated from Y Combinator's public search index and enriched with clean financial parameters.
+
+## 🌟 Key Features
+
+* **Interactive Charts**:
+  * **Top Industries**: Bar chart distribution of the most popular startup categories.
+  * **Startups Funded per Year**: Chronological cohort volume tracker.
+  * **Operating Status**: Visual breakdown of active, acquired, public, and inactive companies.
+* **Custom Multiselect Dropdowns**: Multi-select filtering for **Country**, **Team Size**, **Industry**, **YC Batch**, **Operating Status**, **Min YC Deal**, **Extra Funding**, and **Tags**.
+* **Flexible Search**: Search instantly by name, one-liner, description, tag, industry, ticker, or investors.
+* **Airtable-Style Sorting**: Click headers on the dense tabular view to sort by name, batch, status, deal size, or country.
+* **Comprehensive Modal Views**: Click any company row to open a full details dialog, featuring:
+  * Company pitch, long description, and former names.
+  * Financial profile (YC deal, extra capital, exit value, investors, ticker).
+  * Direct links to official websites and YC directory profiles.
+  * Scroll state persistence fix (prevents scroll position bleed between company views).
 
 ---
 
-## Dataset Summary Statistics
+## 🛠️ Getting Started & Running Locally
 
-### 📊 Overview
+Since the application runs entirely on static files (`index.html`, `app.js`, `style.css`, and the minified dataset `yc_startups_min.json`), you can run it locally with zero build steps:
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/Truedoday/ycexplorer.git
+   cd ycexplorer
+   ```
+
+2. **Start a local development server**:
+   * Using Python (recommended):
+     ```bash
+     python3 -m http.server 8000
+     ```
+   * Using Node/npm:
+     ```bash
+     npx serve
+     ```
+
+3. **Open the browser**:
+   Go to [http://localhost:8000](http://localhost:8000) or the port provided by your server.
+
+---
+
+## 📂 Repository Structure & Dataset Files
+
+This repository contains both the frontend explorer application and the utility scripts / raw data files:
+
+* **Explorer App**:
+  * [`index.html`](./index.html): Semantic HTML5 structure.
+  * [`style.css`](./style.css): Vanilla CSS styling featuring glassmorphism and responsiveness.
+  * [`app.js`](./app.js): Core logic, multiselect components, search/filter algorithms, and Chart.js integrations.
+  * [`yc_startups_min.json`](./yc_startups_min.json): Enriched, minified dataset optimized for quick page load.
+* **Raw & Tabular Data**:
+  * [`yc_startups.json`](./yc_startups.json): Full nested JSON metadata for developer consumption.
+  * [`yc_startups.csv`](./yc_startups.csv): Tabular dataset (lists converted to semicolon-separated lists) for Excel/Pandas analysis.
+* **Scripts**:
+  * [`generate_dataset.py`](./generate_dataset.py): Python script that fetches and extracts the raw YC directory dataset.
+  * [`enrich_dataset_real.py`](./enrich_dataset_real.py): Enrichment script adding financial parameters and tags.
+  * [`minify_dataset.py`](./minify_dataset.py): Minimizes metadata for the dashboard frontend.
+
+---
+
+## 📊 Dataset Summary Statistics (June 2026)
+
+### Overview
 * **Total Companies**: 5,956
-* **YC Top Companies 🏆**: 91 (companies recognized for high growth/valuation)
+* **YC Top Companies 🏆**: 91
 * **Currently Hiring 💼**: 1,480
 * **Non-Profits 🎗️**: 42
 
-### 🔄 Operational Status
+### Operational Status
 * **Active**: 4,105 (68.9%)
 * **Inactive**: 1,040 (17.5%)
 * **Acquired**: 788 (13.2%)
 * **Public**: 23 (0.4%)
 
-### 🏢 Top 10 Industries
+### Top 10 Industries
 * **B2B**: 3,044 companies
 * **Consumer**: 869 companies
 * **Healthcare**: 679 companies
@@ -69,43 +100,14 @@ The dataset is derived from Y Combinator's official startup directory (retrieved
 * **Government**: 41 companies
 * **Unspecified**: 18 companies
 
-### 🏷️ Top 15 Tags
-* **SaaS**: 1,100 companies
-* **B2B**: 1,100 companies
-* **Artificial Intelligence**: 916 companies
-* **AI**: 836 companies
-* **Fintech**: 700 companies
-* **Developer Tools**: 534 companies
-* **Marketplace**: 305 companies
-* **Generative AI**: 257 companies
-* **Consumer**: 243 companies
-* **Machine Learning**: 230 companies
-* **Healthcare**: 205 companies
-* **E-commerce**: 188 companies
-* **Analytics**: 186 companies
-* **Health Tech**: 172 companies
-* **Open Source**: 167 companies
-
-### 📅 Top 10 Batches by Company Count
-* **Winter 2022**: 398 companies
-* **Summer 2021**: 391 companies
-* **Winter 2021**: 336 companies
-* **Winter 2023**: 274 companies
-* **Winter 2024**: 249 companies
-* **Summer 2024**: 248 companies
-* **Summer 2022**: 234 companies
-* **Winter 2020**: 229 companies
-* **Summer 2023**: 219 companies
-* **Summer 2020**: 208 companies
-
 ---
 
-## How to Update the Dataset
+## 🔄 Re-generating the Dataset
 
-You can run the generator script again to pull the latest updates directly from the index:
+You can update the dataset files by running:
 
 ```bash
 python3 generate_dataset.py
 ```
 
-*Note: This data is compiled from the public directory of launched startups. Startups in stealth mode or those that chose not to list publicly are not included.*
+*Note: This dataset represents only launched, publicly listed YC startups. Stealth companies or those requesting directory exclusion are not included.*
