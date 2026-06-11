@@ -252,6 +252,7 @@ body {
 
 /* Visualisation Charts Layout */
 .analytics-grid {
+  order: 2;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
@@ -296,6 +297,7 @@ body {
 
 /* Horizontal Filters panel styling */
 .filters-top-panel {
+  order: 1;
   position: relative;
   z-index: 100;
   padding: 16px;
@@ -554,11 +556,13 @@ select option {
 
 /* Results section */
 .results-section {
+  order: 2;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 .results-header {
+  order: 1;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -587,6 +591,7 @@ select option {
 
 /* Table View Container and Dense Spreadsheet Table */
 .table-container {
+  order: 3;
   overflow-x: auto;
   width: 100%;
   background: var(--bg-panel);
@@ -748,6 +753,7 @@ select option {
 
 /* Load More Button */
 .load-more-container {
+  order: 4;
   display: flex;
   justify-content: center;
   margin-top: 12px;
