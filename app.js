@@ -662,20 +662,20 @@ function renderCharts(data) {
   });
   const industryShortNames = {
     'B2B': 'B2B',
-    'Consumer': 'Cons',
-    'Healthcare': 'Hlth',
-    'Fintech': 'Fin',
-    'Industrials': 'Indus',
-    'Real Estate and Construction': 'RE',
-    'Education': 'Edu',
-    'Government': 'Gov',
-    'Unspecified': 'Unsp'
+    'Consumer': 'Consumer',
+    'Healthcare': 'Health',
+    'Fintech': 'Fintech',
+    'Industrials': 'Industrls',
+    'Real Estate and Construction': 'Real Est.',
+    'Education': 'Education',
+    'Government': 'Govt.',
+    'Unspecified': 'Unspec.'
   };
 
   const sortedIndustries = Object.entries(industryCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
-  // Shorten labels to max 5 chars, keep full names for tooltips
+  // Shorten labels to max 9 chars, keep full names for tooltips
   const indLabelsFull = sortedIndustries.map(x => x[0]);
-  const indLabels = sortedIndustries.map(x => industryShortNames[x[0]] || x[0].slice(0, 5));
+  const indLabels = sortedIndustries.map(x => industryShortNames[x[0]] || x[0].slice(0, 9));
   const indValues = sortedIndustries.map(x => x[1]);
 
   const indCtx = document.getElementById('industryChart').getContext('2d');
