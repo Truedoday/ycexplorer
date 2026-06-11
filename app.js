@@ -661,11 +661,12 @@ function renderCharts(data) {
     }
   });
   const sortedIndustries = Object.entries(industryCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
-  const indLabels = sortedIndustries.map(x => x[0]);
+  // Shorten labels to max 12 chars so bars and ticks match status chart proportions
+  const indLabels = sortedIndustries.map(x => x[0].length > 12 ? x[0].slice(0, 11) + '…' : x[0]);
+  const indFullLabels = sortedIndustries.map(x => x[0]); // full name for tooltip
   const indValues = sortedIndustries.map(x => x[1]);
 
   const indCtx = document.getElementById('industryChart').getContext('2d');
-  const indColor = 'rgba(148, 163, 184, 0.75)'; // Slate 400 - monochromatic Slate Blue/Grey
 
   industryChartInstance = new Chart(indCtx, {
     type: 'bar',
@@ -694,7 +695,10 @@ function renderCharts(data) {
           bodyFont: { family: 'Inter', size: 11 },
           borderColor: 'rgba(255,255,255,0.08)',
           borderWidth: 1,
-          padding: 10
+          padding: 10,
+          callbacks: {
+            title: (items) => indFullLabels[items[0].dataIndex]
+          }
         }
       },
       scales: {
@@ -703,8 +707,8 @@ function renderCharts(data) {
           ticks: {
             color: 'hsl(215,12%,65%)',
             font: { family: 'Inter', size: 9 },
-            maxRotation: 35,
-            minRotation: 20
+            maxRotation: 0,
+            minRotation: 0
           }
         },
         y: {
@@ -788,62 +792,68 @@ function renderCharts(data) {
     });
   }
 
-  // 3. Operating Status (Vertical Bar Chart)
+  // 3. Operating Status — sorted vertical bar (matches industry chart proportions)
   const statusCounts = { Active: 0, Acquired: 0, Public: 0, Inactive: 0 };
   data.forEach(c => {
-    if (c.status in statusCounts) {
-      statusCounts[c.status]++;
-    }
+    if (c.status in statusCounts) statusCounts[c.status]++;
   });
+  // Sort descending by count
+  const sortedStatus = Object.entries(statusCounts).sort((a, b) => b[1] - a[1]);
+  const statusLabels = sortedStatus.map(x => x[0]);
+  const statusValues = sortedStatus.map(x => x[1]);
+  const statusColors = {
+    Active:   'rgba(74, 222, 128, 0.75)',
+    Acquired: 'rgba(250, 204, 21, 0.75)',
+    Public:   'rgba(96, 165, 250, 0.75)',
+    Inactive: 'rgba(148, 163, 184, 0.65)'
+  };
 
   const statusCanvas = document.getElementById('statusChart');
   if (statusCanvas) {
     const statusCtx = statusCanvas.getContext('2d');
     statusChartInstance = new Chart(statusCtx, {
-      type: 'pie',
+      type: 'bar',
       data: {
-        labels: Object.keys(statusCounts),
+        labels: statusLabels,
         datasets: [{
-          data: Object.values(statusCounts),
-          backgroundColor: [
-            'rgba(74, 222, 128, 0.82)',   // Active — soft green
-            'rgba(250, 204, 21, 0.82)',   // Acquired — amber
-            'rgba(96, 165, 250, 0.82)',   // Public — sky blue
-            'rgba(148, 163, 184, 0.72)'   // Inactive — slate grey
-          ],
-          borderColor: 'rgba(15, 23, 42, 0.6)',
-          borderWidth: 2,
-          hoverOffset: 8
+          label: 'Companies',
+          data: statusValues,
+          backgroundColor: statusLabels.map(l => statusColors[l]),
+          borderColor: 'rgba(255,255,255,0.05)',
+          borderWidth: 1,
+          borderRadius: 4,
+          barPercentage: 0.7,
+          categoryPercentage: 0.8
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
         plugins: {
-          legend: {
-            display: true,
-            position: 'right',
-            labels: {
-              color: 'hsl(215,12%,75%)',
-              font: { family: 'Inter', size: 11 },
-              boxWidth: 12,
-              padding: 10
-            }
-          },
+          legend: { display: false },
           tooltip: {
             backgroundColor: 'rgba(15, 23, 42, 0.95)',
             titleFont: { family: 'Inter', size: 12, weight: 'bold' },
             bodyFont: { family: 'Inter', size: 11 },
             borderColor: 'rgba(255,255,255,0.08)',
             borderWidth: 1,
-            padding: 10,
-            callbacks: {
-              label: (ctx) => {
-                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-                const pct = ((ctx.parsed / total) * 100).toFixed(1);
-                return ` ${ctx.label}: ${ctx.parsed.toLocaleString()} (${pct}%)`;
-              }
+            padding: 10
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: {
+              color: 'hsl(215,12%,65%)',
+              font: { family: 'Inter', size: 9 },
+              maxRotation: 0,
+              minRotation: 0
             }
+          },
+          y: {
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            ticks: { color: 'hsl(215,12%,65%)', font: { family: 'Inter', size: 9 } }
           }
         }
       }
