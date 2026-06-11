@@ -672,47 +672,44 @@ function renderCharts(data) {
     data: {
       labels: indLabels,
       datasets: [{
-        label: 'Startups Count',
+        label: 'Startups',
         data: indValues,
-        backgroundColor: indColor,
-        borderColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(148, 163, 184, 0.7)',
+        borderColor: 'rgba(148, 163, 184, 0.2)',
         borderWidth: 1,
         borderRadius: 4,
-        barThickness: 10
+        barPercentage: 0.7,
+        categoryPercentage: 0.8
       }]
     },
     options: {
-      indexAxis: 'y',
       responsive: true,
       maintainAspectRatio: false,
-      interaction: {
-        mode: 'index',
-        intersect: false,
-        axis: 'y'
-      },
-      hover: {
-        mode: 'index',
-        intersect: false
-      },
+      interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: {
           backgroundColor: 'rgba(15, 23, 42, 0.95)',
           titleFont: { family: 'Inter', size: 12, weight: 'bold' },
           bodyFont: { family: 'Inter', size: 11 },
-          borderColor: 'rgba(255, 255, 255, 0.08)',
+          borderColor: 'rgba(255,255,255,0.08)',
           borderWidth: 1,
           padding: 10
         }
       },
       scales: {
         x: {
-          grid: { color: 'rgba(255, 255, 255, 0.04)' },
-          ticks: { color: 'hsl(215, 12%, 75%)', font: { family: 'Inter', size: 10 } }
+          grid: { display: false },
+          ticks: {
+            color: 'hsl(215,12%,65%)',
+            font: { family: 'Inter', size: 9 },
+            maxRotation: 35,
+            minRotation: 20
+          }
         },
         y: {
-          grid: { display: false },
-          ticks: { color: 'hsl(215, 12%, 75%)', font: { family: 'Inter', size: 10, weight: '500' } }
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: 'hsl(215,12%,65%)', font: { family: 'Inter', size: 9 } }
         }
       }
     }
@@ -803,56 +800,50 @@ function renderCharts(data) {
   if (statusCanvas) {
     const statusCtx = statusCanvas.getContext('2d');
     statusChartInstance = new Chart(statusCtx, {
-      type: 'bar',
+      type: 'pie',
       data: {
         labels: Object.keys(statusCounts),
         datasets: [{
-          label: 'Companies',
           data: Object.values(statusCounts),
           backgroundColor: [
-            'rgba(134, 239, 172, 0.75)',  // Soft pastel green
-            'rgba(253, 224, 71, 0.75)',   // Soft pastel yellow
-            'rgba(147, 197, 253, 0.75)',  // Soft pastel blue
-            'rgba(203, 213, 225, 0.75)'   // Soft grey/slate
+            'rgba(74, 222, 128, 0.82)',   // Active — soft green
+            'rgba(250, 204, 21, 0.82)',   // Acquired — amber
+            'rgba(96, 165, 250, 0.82)',   // Public — sky blue
+            'rgba(148, 163, 184, 0.72)'   // Inactive — slate grey
           ],
-          borderColor: 'rgba(255, 255, 255, 0.05)',
-          borderWidth: 1,
-          borderRadius: 4,
-          barPercentage: 0.6,
-          categoryPercentage: 0.8
+          borderColor: 'rgba(15, 23, 42, 0.6)',
+          borderWidth: 2,
+          hoverOffset: 8
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false,
-          axis: 'x'
-        },
-        hover: {
-          mode: 'index',
-          intersect: false
-        },
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: true,
+            position: 'right',
+            labels: {
+              color: 'hsl(215,12%,75%)',
+              font: { family: 'Inter', size: 11 },
+              boxWidth: 12,
+              padding: 10
+            }
+          },
           tooltip: {
             backgroundColor: 'rgba(15, 23, 42, 0.95)',
             titleFont: { family: 'Inter', size: 12, weight: 'bold' },
             bodyFont: { family: 'Inter', size: 11 },
-            borderColor: 'rgba(255, 255, 255, 0.08)',
+            borderColor: 'rgba(255,255,255,0.08)',
             borderWidth: 1,
-            padding: 10
-          }
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { color: 'hsl(215, 12%, 75%)', font: { family: 'Inter', size: 10 } }
-          },
-          y: {
-            grid: { color: 'rgba(255, 255, 255, 0.04)' },
-            ticks: { color: 'hsl(215, 12%, 75%)', font: { family: 'Inter', size: 10 } }
+            padding: 10,
+            callbacks: {
+              label: (ctx) => {
+                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                const pct = ((ctx.parsed / total) * 100).toFixed(1);
+                return ` ${ctx.label}: ${ctx.parsed.toLocaleString()} (${pct}%)`;
+              }
+            }
           }
         }
       }
