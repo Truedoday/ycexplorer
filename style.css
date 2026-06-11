@@ -681,6 +681,7 @@ select option {
   max-height: 90vh;
   overflow-y: auto;
   scrollbar-gutter: stable;
+  color: var(--text-main);
   animation: modalScaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
@@ -737,6 +738,7 @@ select option {
   font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -0.5px;
+  color: var(--text-main);
 }
 .modal-one-liner {
   font-size: 1rem;
@@ -763,6 +765,7 @@ select option {
 .dialog-left h3 {
   font-size: 1.1rem;
   font-weight: 700;
+  color: var(--text-main);
 }
 .long-description {
   color: var(--text-muted);
@@ -802,6 +805,7 @@ select option {
 .dialog-right h3 {
   font-size: 1.1rem;
   font-weight: 700;
+  color: var(--text-main);
 }
 .details-table {
   width: 100%;
